@@ -1,8 +1,10 @@
+/* eslint-disable object-property-newline */
 const { Plugin } = require('powercord/entities');
-const { React, getModuleByDisplayName, getModule, contextMenu } = require('powercord/webpack');
+const { React, getModuleByDisplayName, getModule, contextMenu, i18n: { _proxyContext: { defaultMessages }, Messages } } = require('powercord/webpack');
 const { inject, uninject } = require('powercord/injector');
 
 const Settings = require('./components/Settings');
+const i18n = require('./i18n');
 
 module.exports = class SmartTypers extends Plugin {
   get currentUser () {
@@ -11,6 +13,7 @@ module.exports = class SmartTypers extends Plugin {
 
   async startPlugin () {
     this.loadStylesheet('style.css');
+    powercord.api.i18n.loadAllStrings(i18n);
     powercord.api.settings.registerSettings(this.entityID, {
       category: this.entityID,
       label: 'Smart Typers',
@@ -20,24 +23,73 @@ module.exports = class SmartTypers extends Plugin {
       })
     });
 
-    const get = (setting, defaultValue) => this.settings.get(setting, defaultValue);
+    const getSetting = (setting, defaultValue) => this.settings.get(setting, defaultValue);
 
-    const _this = this;
     const memberStore = await getModule([ 'initialize', 'getMember' ]);
     const userStore = await getModule([ 'getCurrentUser' ]);
+    const i18nParser = await getModule([ 'getMessage' ]);
 
-    const FluxTypingUsers = await getModuleByDisplayName('FluxContainer(TypingUsers)');
-    const TypingUsers = (FluxTypingUsers.prototype.render.call({ memoizedGetStateFromStores: () => ({}) })).type;
+    const _this = this;
+    const TypingUsers = (await getModuleByDisplayName('FluxContainer(TypingUsers)')).prototype.render.call({ memoizedGetStateFromStores: () => ({}) }).type;
     inject('smartTypers-popouts', TypingUsers.prototype, 'render', function (args, res) {
       if (res) {
-        let index = -1;
+        const maxTypingUsers = getSetting('maxTypingUsers', 3);
 
-        const guildId = this.props.channel.guild_id;
+        const twoUsersTyping = Messages.TWO_USERS_TYPING.plainFormat({ a: null, b: null });
+        const typingMessage = twoUsersTyping.replace(/[*]{2}.+[*]{2}/, '');
+        const [ , and ] = twoUsersTyping.match(/[*]{2}\s(.+)\s[*]{2}/);
+
         const filteredUserIds = Object.keys(this.props.typingUsers).filter(id => id !== _this.currentUser.id);
-        for (const userId of filteredUserIds) {
-          index += 1;
+        if (filteredUserIds.length > 3 && maxTypingUsers > 3) {
+          let userString = '';
+          const formatKeys = {
+            additionalUsers: filteredUserIds.length - maxTypingUsers
+          };
 
-          const userElement = res.props.children[1].props.children[index * 2];
+          for (let i = 0; i < filteredUserIds.length; i++) {
+            const letter = String.fromCharCode(i + 97);
+            const currentIndex = i + 1;
+
+            if (currentIndex <= maxTypingUsers) {
+              if (currentIndex >= filteredUserIds.length) {
+                userString += `${and} **!!${letter}!!**`;
+              } else {
+                userString += `**!!${letter}!!**, `;
+              }
+
+              formatKeys[letter] = null;
+            } else {
+              userString = userString.replace(/,.$/, ` ${and} {additionalUsers} other user${formatKeys.additionalUsers > 1 ? 's' : ''}`);
+            }
+          }
+
+          Messages.SMART_TYPERS.CUSTOM_USERS_TYPING = i18nParser.getMessage(`${userString} ${typingMessage}`);
+
+          res.props.children[1].props.children = Messages.SMART_TYPERS.CUSTOM_USERS_TYPING.format(formatKeys);
+        }
+
+        const typingFormat = getSetting('typingFormat', '');
+        if (typingFormat.length > 0 && typingFormat !== defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER && filteredUserIds.length > 0) {
+          const { children } = res.props.children[1].props;
+
+          const parsedFormat = i18nParser.getMessage(typingFormat);
+          const replacement = ` ${typeof parsedFormat.format === 'function'
+            ? parsedFormat.format({ typingUsers: filteredUserIds.length })
+            : parsedFormat}`;
+
+          if (Array.isArray(children)) {
+            children[children.length - 1] = children[children.length - 1].includes('other user')
+              ? children[children.length - 1].replace(typingMessage, replacement)
+              : replacement;
+          } else {
+            res.props.children[1].props.children = Messages.SEVERAL_USERS_TYPING.replace(typingMessage, replacement);
+          }
+        }
+
+        for (let i = 0; i < filteredUserIds.length; i++) {
+          const userId = filteredUserIds[i];
+          const guildId = this.props.channel.guild_id;
+          const userElement = res.props.children[1].props.children[i * 2];
           if (userElement && userElement.props) {
             const user = userStore.getUser(userId);
             const member = memberStore.getMember(guildId, userId) || {};
@@ -45,17 +97,16 @@ module.exports = class SmartTypers extends Plugin {
             const splitUsername = _this.normalizeUsername(formattedUser).split(_this.getEmojiRegex()).filter(Boolean);
 
             if (this.props.channel.id === '1337') {
-              // eslint-disable-next-line no-undef
-              member.colorString = `#${BigInt(userId).toString(16).slice(0, 6)}`;
+              member.colorString = '#' + Number(userId).toString(16).slice(0, 6);
             }
 
             userElement.props.children = (splitUsername.length > 0 ? splitUsername : [ _this.normalizeUsername(user.username, true) ]).map(substring => {
-              if (!_this.getEmojiRegex(true).test(substring) && get('colorGradient', false) && member.colorString) {
+              if (!_this.getEmojiRegex(true).test(substring) && getSetting('colorGradient', false) && member.colorString) {
                 return React.createElement('span', {
                   className: 'gradient',
                   style: {
-                    '--primary-color': member.colorString,
-                    '--secondary-color': _this.shadeColor(member.colorString, 75)
+                    '--smartTypers-primary': member.colorString,
+                    '--smartTypers-secondary': _this.shadeColor(member.colorString, 75)
                   }
                 }, substring);
               }
@@ -64,7 +115,7 @@ module.exports = class SmartTypers extends Plugin {
             });
 
             userElement.props = Object.assign({}, userElement.props, {
-              className: [ 'typing-user', get('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
+              className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
               onClick: (e) => _this.openUserPopout(userId, guildId || void 0, e.target),
               onContextMenu: (e) => _this.openUserContextMenu(userId, guildId, this.props.channel, e)
             });
@@ -138,7 +189,7 @@ module.exports = class SmartTypers extends Plugin {
   }
 
   normalizeUsername (username, fallback) {
-    const emojiRegex = (g) => this.getEmojiRegex(g);
+    const emojiRegex = (global) => this.getEmojiRegex(global);
     const cleanUsername = this.settings.get('hideEmojis', false) ? username.replace(emojiRegex(true), '') : username;
 
     if (fallback && cleanUsername.replace(this.getInvisibleRegex(true), '').length === 0) {

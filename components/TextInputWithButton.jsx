@@ -17,7 +17,7 @@ module.exports = class TextInputWithButton extends React.PureComponent {
 
   render () {
     const { classes } = this;
-    const { title, disabled, placeholder, onClick } = this.props;
+    const { title, disabled, placeholder, onClick, icon } = this.props;
 
     return (
       <FormItem title={title}>
@@ -29,7 +29,7 @@ module.exports = class TextInputWithButton extends React.PureComponent {
             <Flex shrink={1} grow={0} style={{ margin: 0 }}>
               <Button className={classes.button} disabled={disabled} size={Button.Sizes.MIN} color={Button.Colors.GREY} look={Button.Looks.GHOST} onClick={onClick}>
                 <span className={classes.text}>{this.props.text}</span>
-                <span className={[ 'smartTypers-input-icon fal', classes.editIcon ].join(' ')}></span>
+                <span className={[ 'smartTypers-input-icon', icon, classes.editIcon ].join(' ')}></span>
               </Button>
             </Flex>
           </Flex>

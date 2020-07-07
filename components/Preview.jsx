@@ -81,6 +81,13 @@ module.exports = class Preview extends React.PureComponent {
       users[id] = null;
     }
 
+    const maxTypingUsers = this.props.main.settings.get('maxTypingUsers', 3);
+    if (currentRotation === 3 && maxTypingUsers > 3) {
+      for (let i = currentRotation + 1; i < 10; i++) {
+        users[getRandomUserId()] = null;
+      }
+    }
+
     return users;
   }
 

@@ -1,0 +1,22 @@
+{
+  "SMART_TYPERS": {
+    "HIDE_EMOJIS_DESC": "Filters out emojis from display names (will automatically fallback to username, if a nickname is set and it only contains emojis).",
+    "HIDE_EMOJIS": "Hide Emojis",
+    "COLORED_GRADIENT": "Colored Gradient",
+    "COLORED_GRADIENT_DESC": "Displays a colored gradient over display names by using the color of the user's highest role.",
+    "MAXIMUM_TYPING_USERS": "Maximum Typing Users",
+    "USERS": "users",
+    "TYPING_FORMAT": "Typing Format",
+    "TYPING_FORMAT_PLACEHOLDER": "{typingUsers, plural, =1 {is} other {are}} typing...",
+    "SET_AS_DEFAULT": "Set as Default",
+    "USER_FORMAT": "User Format",
+    "BETA": "Beta",
+    "HIDE_VARIABLES": "Hide Variables",
+    "SHOW_VARIABLES": "Show Variables",
+    "FUNCTIONALITY": "Functionality",
+    "USER_POPOUT_DESC": "Renders a popout that shows basic information about the selected user and provides some additional prompts.",
+    "USER_POPOUT": "User Popout",
+    "USER_CONTEXT_MENU_DESC": "Renders a context menu that features a variety of actions for managing the targeted user.",
+    "USER_CONTEXT_MENU": "User Context Menu"
+  }
+}
