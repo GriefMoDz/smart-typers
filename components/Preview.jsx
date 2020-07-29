@@ -1,34 +1,5 @@
-const { React, i18n: { Messages }, getModule, getModuleByDisplayName } = require('powercord/webpack');
+const { React, getModule, getModuleByDisplayName } = require('powercord/webpack');
 const { Card } = require('powercord/components');
-
-class ChannelTextArea extends React.PureComponent {
-  constructor () {
-    super();
-
-    this.filter = (...classes) => classes.filter(Boolean).join(' ');
-    this.classes = {
-      $channelTextArea: getModule([ 'chatContent', 'form' ], false).channelTextArea,
-      ...getModule([ 'slateTextArea', 'placeholder' ], false),
-      ...getModule([ 'channelTextArea', 'inner' ], false)
-    };
-  }
-
-  render () {
-    const { classes } = this;
-
-    return <>
-      <div className={this.filter(classes.$channelTextArea, classes.channelTextArea, classes.channelTextAreaDisabled, classes.focused)}>
-        <div className={this.filter(classes.scrollableContainer, classes.webkit)}>
-          <div className={this.filter(classes.inner, classes.innerDisabled, classes.sansAttachButton)}>
-            <div className={this.filter(classes.textArea, classes.textAreaSlate, classes.textAreaDisabled, classes.slateContainer)}>
-              <div className={this.filter(classes.placeholder, classes.fontSize16Padding)}>{Messages.NO_SEND_MESSAGES_PERMISSION_PLACEHOLDER}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>;
-  }
-}
 
 module.exports = class Preview extends React.PureComponent {
   constructor () {
@@ -54,12 +25,9 @@ module.exports = class Preview extends React.PureComponent {
 
     const fakeChannel = new Channel({ id: '1337' });
     const FluxTypingUsers = getModuleByDisplayName('FluxContainer(TypingUsers)', false);
-    const TypingUsers = ((new FluxTypingUsers({ channel: fakeChannel })).render()).type;
-
-    fakeChannel.rateLimitPerUser = null;
+    const TypingUsers = new FluxTypingUsers({ channel: fakeChannel }).render().type;
 
     return <Card className='smartTypers-preview'>
-      <ChannelTextArea />
       <TypingUsers channel={fakeChannel} typingUsers={this.fetchPreviewUsers()} />
     </Card>;
   }

@@ -4,7 +4,7 @@
 }
 
 .typing-user.clickable {
-  cursor: pointer;
+  cursor: pointer !important;
 }
 
 .typing-user .gradient {
@@ -18,12 +18,11 @@
   padding: 8px;
   background-color: var(--background-secondary);
   margin-bottom: 40px;
-  border: none;
+  border-radius: 5px !important;
 }
 
 .smartTypers-preview [class|='typing'] {
-  bottom: 6px;
-  left: 6px
+  position: initial !important;
 }
 
 .smartTypers-preview + div, .smartTypers-title {

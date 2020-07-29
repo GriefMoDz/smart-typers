@@ -1,4 +1,3 @@
-/* eslint-disable object-property-newline */
 const { Plugin } = require('powercord/entities');
 const { React, getModuleByDisplayName, getModule, contextMenu, i18n: { _proxyContext: { defaultMessages }, Messages } } = require('powercord/webpack');
 const { inject, uninject } = require('powercord/injector');
@@ -27,6 +26,7 @@ module.exports = class SmartTypers extends Plugin {
 
     const memberStore = await getModule([ 'initialize', 'getMember' ]);
     const userStore = await getModule([ 'getCurrentUser' ]);
+    const usernameUtils = await getModule([ 'getName' ]);
     const i18nParser = await getModule([ 'getMessage' ]);
 
     const _this = this;
@@ -39,9 +39,10 @@ module.exports = class SmartTypers extends Plugin {
         const typingMessage = twoUsersTyping.replace(/[*]{2}.+[*]{2}/, '');
         const [ , and ] = twoUsersTyping.match(/[*]{2}\s(.+)\s[*]{2}/);
 
+        /* Additional Users */
         const filteredUserIds = Object.keys(this.props.typingUsers).filter(id => id !== _this.currentUser.id);
         if (filteredUserIds.length > 3 && maxTypingUsers > 3) {
-          let userString = '';
+          let typingUsers = '';
           const formatKeys = {
             additionalUsers: filteredUserIds.length - maxTypingUsers
           };
@@ -52,22 +53,23 @@ module.exports = class SmartTypers extends Plugin {
 
             if (currentIndex <= maxTypingUsers) {
               if (currentIndex >= filteredUserIds.length) {
-                userString += `${and} **!!${letter}!!**`;
+                typingUsers += `${and} **!!${letter}!!**`;
               } else {
-                userString += `**!!${letter}!!**, `;
+                typingUsers += `**!!${letter}!!**, `;
               }
 
               formatKeys[letter] = null;
             } else {
-              userString = userString.replace(/,.$/, ` ${and} {additionalUsers} other user${formatKeys.additionalUsers > 1 ? 's' : ''}`);
+              typingUsers = typingUsers.replace(/,.$/, ` ${and} {additionalUsers} other user${formatKeys.additionalUsers > 1 ? 's' : ''}`);
             }
           }
 
-          Messages.SMART_TYPERS.CUSTOM_USERS_TYPING = i18nParser.getMessage(`${userString} ${typingMessage}`);
+          Messages.SMART_TYPERS.CUSTOM_USERS_TYPING = i18nParser.getMessage(`${typingUsers} ${typingMessage}`);
 
           res.props.children[1].props.children = Messages.SMART_TYPERS.CUSTOM_USERS_TYPING.format(formatKeys);
         }
 
+        /* Custom Typing Format */
         const typingFormat = getSetting('typingFormat', '');
         if (typingFormat.length > 0 && typingFormat !== defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER && filteredUserIds.length > 0) {
           const { children } = res.props.children[1].props;
@@ -78,7 +80,7 @@ module.exports = class SmartTypers extends Plugin {
             : parsedFormat}`;
 
           if (Array.isArray(children)) {
-            children[children.length - 1] = children[children.length - 1].includes('other user')
+            children[children.length - 1] = filteredUserIds.length > maxTypingUsers
               ? children[children.length - 1].replace(typingMessage, replacement)
               : replacement;
           } else {
@@ -93,9 +95,13 @@ module.exports = class SmartTypers extends Plugin {
           if (userElement && userElement.props) {
             const user = userStore.getUser(userId);
             const member = memberStore.getMember(guildId, userId) || {};
-            const formattedUser = _this.parseUser(user, userElement);
+            const displayName = usernameUtils.getName(guildId, this.props.channel.id, user);
+
+            /* User Format & Emoji Hider */
+            const formattedUser = _this.parseUser(user, displayName);
             const splitUsername = _this.normalizeUsername(formattedUser).split(_this.getEmojiRegex()).filter(Boolean);
 
+            /* Colour Gradient */
             if (this.props.channel.id === '1337') {
               member.colorString = '#' + Number(userId).toString(16).slice(0, 6);
             }
@@ -114,9 +120,10 @@ module.exports = class SmartTypers extends Plugin {
               return substring;
             });
 
+            /* User Popout and Context Menu */
             userElement.props = Object.assign({}, userElement.props, {
               className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
-              onClick: (e) => _this.openUserPopout(userId, guildId || void 0, e.target),
+              onClick: (e) => _this.openUserPopout(userId, guildId, e.target),
               onContextMenu: (e) => _this.openUserContextMenu(userId, guildId, this.props.channel, e)
             });
           }
@@ -199,8 +206,7 @@ module.exports = class SmartTypers extends Plugin {
     return cleanUsername;
   }
 
-  parseUser (user, userElement) {
-    const displayName = userElement.props.children[0];
+  parseUser (user, displayName) {
     const userFormat = this.settings.get('userFormat', '{displayName}');
     const variables = {
       ...(({ username, tag, id }) => ({ username, tag, id }))(user),

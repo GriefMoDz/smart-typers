@@ -3,7 +3,7 @@
     "HIDE_EMOJIS_DESC": "Filters out emojis from display names (will automatically fallback to username, if a nickname is set and it only contains emojis).",
     "HIDE_EMOJIS": "Hide Emojis",
     "COLORED_GRADIENT": "Colored Gradient",
-    "COLORED_GRADIENT_DESC": "Displays a colored gradient over display names by using the color of the user's highest role.",
+    "COLORED_GRADIENT_DESC": "Displays a gradient over display names by using the color of the user's top-most role.",
     "MAXIMUM_TYPING_USERS": "Maximum Typing Users",
     "USERS": "users",
     "TYPING_FORMAT": "Typing Format",
