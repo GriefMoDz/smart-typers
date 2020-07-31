@@ -43,6 +43,13 @@ module.exports = class Settings extends React.PureComponent {
       >
         {Messages.SMART_TYPERS.COLORED_GRADIENT}
       </SwitchItem>
+      <SwitchItem
+        note={Messages.SMART_TYPERS.DISABLE_INDICATOR_DESC}
+        value={getSetting('disableIndicator', false)}
+        onChange={() => toggleSetting('disableIndicator')}
+      >
+        {Messages.SMART_TYPERS.DISABLE_INDICATOR}
+      </SwitchItem>
       <SliderInput
         stickToMarkers
         initialValue={getSetting('maxTypingUsers', 3)}
@@ -64,7 +71,8 @@ module.exports = class Settings extends React.PureComponent {
         icon='fal fa-undo'
       />
       <TextInputWithButton
-        defaultValue={getSetting('userFormat', '{displayName}')}
+        defaultValue={getSetting('userFormat', '**{displayName}**')}
+        placeholder='**{displayName}**'
         onChange={(value) => updateSetting('userFormat', value)}
         onClick={() => this.setState({ showVariables: !this.state.showVariables })}
         title={[ Messages.SMART_TYPERS.USER_FORMAT, <div className='smartTypers-beta'>{Messages.SMART_TYPERS.BETA}</div> ]}
@@ -104,6 +112,13 @@ module.exports = class Settings extends React.PureComponent {
         onChange={() => toggleSetting('userContextMenu')}
       >
         {Messages.SMART_TYPERS.USER_CONTEXT_MENU}
+      </SwitchItem>
+      <SwitchItem
+        note={Messages.SMART_TYPERS.USER_SHIFT_CLICK_DESC}
+        value={getSetting('userShiftClick', true)}
+        onChange={() => toggleSetting('userShiftClick')}
+      >
+        {Messages.SMART_TYPERS.USER_SHIFT_CLICK}
       </SwitchItem>
     </>;
   }

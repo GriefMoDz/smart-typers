@@ -1,9 +1,11 @@
 const { Plugin } = require('powercord/entities');
-const { React, getModuleByDisplayName, getModule, contextMenu, i18n: { _proxyContext: { defaultMessages }, Messages } } = require('powercord/webpack');
+const { React, getModuleByDisplayName, getModule, contextMenu, i18n: { _proxyContext: { defaultMessages }, Messages }, constants } = require('powercord/webpack');
 const { inject, uninject } = require('powercord/injector');
 
 const Settings = require('./components/Settings');
 const i18n = require('./i18n');
+
+const { TooltipContainer } = getModule(m => m.TooltipContainer, false);
 
 module.exports = class SmartTypers extends Plugin {
   get currentUser () {
@@ -88,6 +90,21 @@ module.exports = class SmartTypers extends Plugin {
           }
         }
 
+        /* Additional Users Tooltip */
+        if (maxTypingUsers > 3 && filteredUserIds.length > maxTypingUsers) {
+          const { children } = res.props.children[1].props;
+          const additionalUsers = filteredUserIds.slice(maxTypingUsers, filteredUserIds.length).map(userId => {
+            const user = userStore.getUser(userId);
+            const displayName = usernameUtils.getName(this.props.channel.guild_id, this.props.channel.id, user);
+            return _this.parseUser(user, displayName);
+          });
+
+          children[children.length - 1] = React.createElement(TooltipContainer, {
+            text: additionalUsers.join(', '),
+            element: 'span'
+          }, children[children.length - 1]);
+        }
+
         for (let i = 0; i < filteredUserIds.length; i++) {
           const userId = filteredUserIds[i];
           const guildId = this.props.channel.guild_id;
@@ -98,6 +115,9 @@ module.exports = class SmartTypers extends Plugin {
             const displayName = usernameUtils.getName(guildId, this.props.channel.id, user);
 
             /* User Format & Emoji Hider */
+            const userFormat = getSetting('userFormat', '**{displayName}**');
+            userElement.type = userFormat.length > 0 && !(/^\*\*((?:\\[\s\S]|[^\\])+?)\*\*(?!\*)/).test(userFormat) ? 'span' : 'strong';
+
             const formattedUser = _this.parseUser(user, displayName);
             const splitUsername = _this.normalizeUsername(formattedUser).split(_this.getEmojiRegex()).filter(Boolean);
 
@@ -123,10 +143,15 @@ module.exports = class SmartTypers extends Plugin {
             /* User Popout and Context Menu */
             userElement.props = Object.assign({}, userElement.props, {
               className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
-              onClick: (e) => _this.openUserPopout(userId, guildId, e.target),
+              onClick: (e) => _this.handleUserClick(userId, this.props.channel, e),
               onContextMenu: (e) => _this.openUserContextMenu(userId, guildId, this.props.channel, e)
             });
           }
+        }
+
+        /* Disable Typing Indicator */
+        if (getSetting('disableIndicator', false)) {
+          delete res.props.children[0];
         }
       }
 
@@ -140,12 +165,20 @@ module.exports = class SmartTypers extends Plugin {
     uninject('smartTypers-popouts');
   }
 
-  openUserPopout (userId, guildId, element) {
+  handleUserClick (userId, channel, event) {
+    if (channel.id !== '1337' && this.settings.get('userShiftClick', true) && event.shiftKey) {
+      const { ComponentDispatch } = getModule([ 'ComponentDispatch' ], false);
+      return ComponentDispatch.dispatchToLastSubscribed(constants.ComponentActions.INSERT_TEXT, {
+        content: `<@${userId}>`
+      });
+    }
+
     const UserPopout = getModuleByDisplayName('FluxContainer(ForwardRef(SubscribeGuildMembersContainer(UserPopout)))', false);
     const PopoutDispatcher = getModule([ 'openPopout' ], false);
+    const guildId = channel.guild_id;
 
-    if (this.settings.get('userPopout', true) && element) {
-      PopoutDispatcher.openPopout(element, {
+    if (this.settings.get('userPopout', true) && event.target) {
+      PopoutDispatcher.openPopout(event.target, {
         closeOnScroll: false,
         containerClass: 'smartTypers-popout',
         render: (props) => React.createElement(UserPopout, {
@@ -207,14 +240,14 @@ module.exports = class SmartTypers extends Plugin {
   }
 
   parseUser (user, displayName) {
-    const userFormat = this.settings.get('userFormat', '{displayName}');
+    const userFormat = this.settings.get('userFormat', '**{displayName}**') || '**{displayName}**';
     const variables = {
       ...(({ username, tag, id }) => ({ username, tag, id }))(user),
       discriminator: `#${user.discriminator}`,
       displayName
     };
 
-    return userFormat.replace(/{([\s\S]+?)}/g, (_, key) => variables[key]);
+    return userFormat.replace(/^\*\*(.*)\*\*$/, '$1').replace(/{([\s\S]+?)}/g, (_, key) => variables[key]);
   }
 
   shadeColor (color, percent) {

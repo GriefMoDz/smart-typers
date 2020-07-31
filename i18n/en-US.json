@@ -4,6 +4,8 @@
     "HIDE_EMOJIS": "Hide Emojis",
     "COLORED_GRADIENT": "Colored Gradient",
     "COLORED_GRADIENT_DESC": "Displays a gradient over display names by using the color of the user's top-most role.",
+    "DISABLE_INDICATOR_DESC": "Removes the animated typing indicator shown before users.",
+    "DISABLE_INDICATOR": "Disable Indicator",
     "MAXIMUM_TYPING_USERS": "Maximum Typing Users",
     "USERS": "users",
     "TYPING_FORMAT": "Typing Format",
@@ -17,6 +19,8 @@
     "USER_POPOUT_DESC": "Renders a popout that shows basic information about the selected user and provides some additional prompts.",
     "USER_POPOUT": "User Popout",
     "USER_CONTEXT_MENU_DESC": "Renders a context menu that features a variety of actions for managing the targeted user.",
-    "USER_CONTEXT_MENU": "User Context Menu"
+    "USER_CONTEXT_MENU": "User Context Menu",
+    "USER_SHIFT_CLICK": "User Shift Click",
+    "USER_SHIFT_CLICK_DESC": "Mentions a user when holding down the ‘⇧ Shift’ key and clicking on their name."
   }
 }
