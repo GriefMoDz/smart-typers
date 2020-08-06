@@ -173,7 +173,7 @@ module.exports = class SmartTypers extends Plugin {
       });
     }
 
-    const UserPopout = getModuleByDisplayName('FluxContainer(ForwardRef(SubscribeGuildMembersContainer(UserPopout)))', false);
+    const UserPopout = getModuleByDisplayName('UserPopout', false);
     const PopoutDispatcher = getModule([ 'openPopout' ], false);
     const guildId = channel.guild_id;
 
