@@ -56,17 +56,6 @@
   border-color: rgba(114, 137, 218, .3);
 }
 
-.smartTypers-input * {
-  cursor: auto;
-}
-
-.smartTypers-input-icon {
-  color: var(--text-normal);
-  line-height: 0;
-  background-image: none !important;
-  margin-top: 0;
-}
-
 .smartTypers-variable {
   margin-right: 5px;
 }

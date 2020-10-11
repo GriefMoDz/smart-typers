@@ -65,19 +65,19 @@ module.exports = class Settings extends React.PureComponent {
         defaultValue={getSetting('typingFormat', defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER)}
         placeholder={defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER}
         onChange={(value) => updateSetting('typingFormat', value)}
-        onClick={() => updateSetting('typingFormat', defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER)}
+        buttonOnClick={() => updateSetting('typingFormat', defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER)}
         title={Messages.SMART_TYPERS.TYPING_FORMAT}
-        text={Messages.SMART_TYPERS.SET_AS_DEFAULT}
-        icon='fal fa-undo'
+        buttonText={Messages.SMART_TYPERS.SET_AS_DEFAULT}
+        buttonIcon='fal fa-undo'
       />
       <TextInputWithButton
         defaultValue={getSetting('userFormat', '**{displayName}**')}
         placeholder='**{displayName}**'
         onChange={(value) => updateSetting('userFormat', value)}
-        onClick={() => this.setState({ showVariables: !this.state.showVariables })}
+        buttonOnClick={() => this.setState({ showVariables: !this.state.showVariables })}
         title={[ Messages.SMART_TYPERS.USER_FORMAT, <div className='smartTypers-beta'>{Messages.SMART_TYPERS.BETA}</div> ]}
-        text={Messages.SMART_TYPERS[`${this.state.showVariables ? 'HIDE' : 'SHOW'}_VARIABLES`]}
-        icon='fal fa-brackets-curly'
+        buttonText={Messages.SMART_TYPERS[`${this.state.showVariables ? 'HIDE' : 'SHOW'}_VARIABLES`]}
+        buttonIcon='fal fa-brackets-curly'
       >
         {this.state.showVariables && <Flex>
           {[ 'username', 'displayName', 'discriminator', 'tag', 'id' ].map(variable => (

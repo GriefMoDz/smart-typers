@@ -8,6 +8,12 @@ const i18n = require('./i18n');
 const { TooltipContainer } = getModule(m => m.TooltipContainer, false);
 
 module.exports = class SmartTypers extends Plugin {
+  constructor () {
+    super();
+
+    this.parser = getModule([ 'parse', 'parseTopic' ], false);
+  }
+
   get currentUser () {
     return window.__SENTRY__.hub.getScope()._user;
   }
@@ -26,6 +32,7 @@ module.exports = class SmartTypers extends Plugin {
 
     const getSetting = (setting, defaultValue) => this.settings.get(setting, defaultValue);
 
+    const relationshipStore = await getModule([ 'getRelationships' ]);
     const memberStore = await getModule([ 'initialize', 'getMember' ]);
     const userStore = await getModule([ 'getCurrentUser' ]);
     const usernameUtils = await getModule([ 'getName' ]);
@@ -42,7 +49,10 @@ module.exports = class SmartTypers extends Plugin {
         const [ , and ] = twoUsersTyping.match(/[*]{2}\s(.+)\s[*]{2}/);
 
         /* Additional Users */
-        const filteredUserIds = Object.keys(this.props.typingUsers).filter(id => id !== _this.currentUser.id);
+        const filteredUserIds = Object.keys(this.props.typingUsers)
+          .filter(id => id !== _this.currentUser.id)
+          .filter(id => !relationshipStore.isBlocked(id));
+
         if (filteredUserIds.length > 3 && maxTypingUsers > 3) {
           let typingUsers = '';
           const formatKeys = {
@@ -62,7 +72,7 @@ module.exports = class SmartTypers extends Plugin {
 
               formatKeys[letter] = null;
             } else {
-              typingUsers = typingUsers.replace(/,.$/, ` ${and} {additionalUsers} other user${formatKeys.additionalUsers > 1 ? 's' : ''}`);
+              typingUsers = typingUsers.replace(/,.$/, ` ${and} {additionalUsers, number} other user${formatKeys.additionalUsers > 1 ? 's' : ''}`);
             }
           }
 
@@ -127,6 +137,7 @@ module.exports = class SmartTypers extends Plugin {
             }
 
             userElement.props.children = (splitUsername.length > 0 ? splitUsername : [ _this.normalizeUsername(user.username, true) ]).map(substring => {
+              const parseFormat = _this.parser.reactParserFor(_this.getCustomRules());
               if (!_this.getEmojiRegex(true).test(substring) && getSetting('colorGradient', false) && member.colorString) {
                 return React.createElement('span', {
                   className: 'gradient',
@@ -137,7 +148,7 @@ module.exports = class SmartTypers extends Plugin {
                 }, substring);
               }
 
-              return substring;
+              return parseFormat(substring);
             });
 
             /* User Popout and Context Menu */
@@ -237,6 +248,10 @@ module.exports = class SmartTypers extends Plugin {
     }
 
     return cleanUsername;
+  }
+
+  getCustomRules () {
+    return global._.omit(this.parser.defaultRules, [ 'autolink', 'blockQuote', 'br', 'channel', 'codeBlock', 'roleMention', 'spoiler', 'url' ]);
   }
 
   parseUser (user, displayName) {
