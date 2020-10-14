@@ -14,8 +14,8 @@ module.exports = class SmartTypers extends Plugin {
     this.parser = getModule([ 'parse', 'parseTopic' ], false);
   }
 
-  get currentUser () {
-    return window.__SENTRY__.hub.getScope()._user;
+  get currentUserId () {
+    return window.DiscordNative.crashReporter.getMetadata().user_id;
   }
 
   async startPlugin () {
@@ -50,7 +50,7 @@ module.exports = class SmartTypers extends Plugin {
 
         /* Additional Users */
         const filteredUserIds = Object.keys(this.props.typingUsers)
-          .filter(id => id !== _this.currentUser.id)
+          .filter(id => id !== _this.currentUserId)
           .filter(id => !relationshipStore.isBlocked(id));
 
         if (filteredUserIds.length > 3 && maxTypingUsers > 3) {
