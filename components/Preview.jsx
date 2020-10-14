@@ -33,7 +33,7 @@ module.exports = class Preview extends React.PureComponent {
   }
 
   fetchPreviewUsers () {
-    const cachedUsers = Object.values(getModule([ 'getUsers' ], false).getUsers()).filter(user => user.id !== this.props.main.currentUser.id);
+    const cachedUsers = Object.values(getModule([ 'getUsers' ], false).getUsers()).filter(user => user.id !== this.props.main.currentUserId);
     const getRandomUserId = () => cachedUsers[Math.floor(Math.random() * cachedUsers.length)].id;
     const users = {};
 
