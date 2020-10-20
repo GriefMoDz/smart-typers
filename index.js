@@ -171,7 +171,7 @@ module.exports = class SmartTypers extends Plugin {
   }
 
   pluginWillUnload () {
-    powercord.api.settings.unregisterSettings(this.entityID);
+    powercord.api.settings.unregisterSettings("smart-typers");
 
     uninject('smartTypers-popouts');
   }
