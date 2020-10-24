@@ -59,3 +59,15 @@
 .smartTypers-variable {
   margin-right: 5px;
 }
+
+.smartTypers-keybind {
+  display: inline-flex;
+  margin-right: -2px;
+  margin-bottom: 0;
+  transform: translateY(-1px);
+}
+
+.smartTypers-keybind span {
+  box-shadow: inset 0 -2px 0 #242629 !important;
+  border: 1px solid #000 !important;
+}

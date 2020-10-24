@@ -1,9 +1,10 @@
-const { React, i18n: { _proxyContext: { defaultMessages }, Messages } } = require('powercord/webpack');
-const { FormTitle, Flex, Button } = require('powercord/components');
+const { React, i18n: { _proxyContext: { defaultMessages }, Messages }, getModuleByDisplayName } = require('powercord/webpack');
+const { AsyncComponent, FormTitle, Flex, Button } = require('powercord/components');
 const { SwitchItem, SliderInput } = require('powercord/components/settings');
 
 const Preview = require('./Preview');
 const TextInputWithButton = require('./TextInputWithButton');
+const KeyboardShortcut = AsyncComponent.from(getModuleByDisplayName('KeyboardShortcut'));
 
 module.exports = class Settings extends React.PureComponent {
   constructor (props) {
@@ -50,12 +51,19 @@ module.exports = class Settings extends React.PureComponent {
       >
         {Messages.SMART_TYPERS.DISABLE_INDICATOR}
       </SwitchItem>
+      <SwitchItem
+        note={Messages.SMART_TYPERS.SELF_TYPING_DESC}
+        value={getSetting('selfTyping', false)}
+        onChange={() => toggleSetting('selfTyping')}
+      >
+        {Messages.SMART_TYPERS.SELF_TYPING}
+      </SwitchItem>
       <SliderInput
         stickToMarkers
         initialValue={getSetting('maxTypingUsers', 3)}
         markers={[ 3, 4, 5, 6, 7, 8 ]}
         className='smartTypers-slider'
-        onMarkerRender={marker => `${marker} ${Messages.SMART_TYPERS.USERS}`}
+        onMarkerRender={marker => marker === 3 ? Messages.DEFAULT : Messages.NUM_USERS.format({ num: marker })}
         defaultValue={getSetting('maxTypingUsers', 3)}
         onValueChange={value => updateSetting('maxTypingUsers', value)}
       >
@@ -75,7 +83,7 @@ module.exports = class Settings extends React.PureComponent {
         placeholder='**{displayName}**'
         onChange={(value) => updateSetting('userFormat', value)}
         buttonOnClick={() => this.setState({ showVariables: !this.state.showVariables })}
-        title={[ Messages.SMART_TYPERS.USER_FORMAT, <div className='smartTypers-beta'>{Messages.SMART_TYPERS.BETA}</div> ]}
+        title={[ Messages.SMART_TYPERS.USER_FORMAT, <div className='smartTypers-beta'>{Messages.BETA}</div> ]}
         buttonText={Messages.SMART_TYPERS[`${this.state.showVariables ? 'HIDE' : 'SHOW'}_VARIABLES`]}
         buttonIcon='fal fa-brackets-curly'
       >
@@ -114,7 +122,12 @@ module.exports = class Settings extends React.PureComponent {
         {Messages.SMART_TYPERS.USER_CONTEXT_MENU}
       </SwitchItem>
       <SwitchItem
-        note={Messages.SMART_TYPERS.USER_SHIFT_CLICK_DESC}
+        note={Messages.SMART_TYPERS.USER_SHIFT_CLICK_DESC.format({
+          shiftHook: (_, text) => React.createElement(KeyboardShortcut, {
+            shortcut: 'shift',
+            className: 'smartTypers-keybind'
+          }, text)
+        })}
         value={getSetting('userShiftClick', true)}
         onChange={() => toggleSetting('userShiftClick')}
       >

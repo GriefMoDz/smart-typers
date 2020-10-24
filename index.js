@@ -1,5 +1,7 @@
+/* eslint-disable object-property-newline */
 const { Plugin } = require('powercord/entities');
 const { React, getModuleByDisplayName, getModule, contextMenu, i18n: { _proxyContext: { defaultMessages }, Messages }, constants } = require('powercord/webpack');
+const { findInReactTree } = require('powercord/util');
 const { inject, uninject } = require('powercord/injector');
 
 const Settings = require('./components/Settings');
@@ -11,7 +13,9 @@ module.exports = class SmartTypers extends Plugin {
   constructor () {
     super();
 
+    this.state = { selfTypingEnabled: false };
     this.parser = getModule([ 'parse', 'parseTopic' ], false);
+    this.classes = getModule([ 'typing', 'ellipsis' ], false);
   }
 
   get currentUserId () {
@@ -41,87 +45,102 @@ module.exports = class SmartTypers extends Plugin {
     const _this = this;
     const TypingUsers = (await getModuleByDisplayName('FluxContainer(TypingUsers)')).prototype.render.call({ memoizedGetStateFromStores: () => ({}) }).type;
     inject('smartTypers-popouts', TypingUsers.prototype, 'render', function (args, res) {
-      if (res) {
-        const maxTypingUsers = getSetting('maxTypingUsers', 3);
+      const selfTyping = getSetting('selfTyping', false);
+      const maxTypingUsers = getSetting('maxTypingUsers', 3);
+      const filteredTypingUsers = Object.keys(this.props.typingUsers)
+        .filter(id => selfTyping ? id : id !== _this.currentUserId)
+        .filter(id => !relationshipStore.isBlocked(id))
+        .map(id => userStore.getUser(id))
+        .filter(id => id !== null);
 
-        const twoUsersTyping = Messages.TWO_USERS_TYPING.plainFormat({ a: null, b: null });
-        const typingMessage = twoUsersTyping.replace(/[*]{2}.+[*]{2}/, '');
-        const [ , and ] = twoUsersTyping.match(/[*]{2}\s(.+)\s[*]{2}/);
+      /* Self Typing */
+      if (this.props.typingUsers[_this.currentUserId]) {
+        _this.state.selfTypingEnabled = selfTyping;
+      }
 
+      /* Typing Strings */
+      const threeUsersTyping = Messages.THREE_USERS_TYPING.format({ a: null, b: null, c: null });
+      const strings = threeUsersTyping.filter(element => typeof element === 'string');
+      const translations = Object.fromEntries(strings.map((str, index) => {
+        const keys = [ 'user', 'comma', 'and', 'typing' ];
+        return [ keys[strings.length > 3 ? index : index + 1], str ];
+      }));
+
+      translations.extra = (num) => {
+        const nowPlayingHeader = Messages.ACTIVITY_FEED_NOW_PLAYING_HEADER_TWO_KNOWN.format({ user1: null, user2: null, extras: num });
+        const strings = nowPlayingHeader.filter(element => typeof element === 'string');
+        return strings[strings.length - 1];
+      };
+
+      const typingUsersContainer = findInReactTree(res, e => e.props && e.props.className && e.props.className === _this.classes.text);
+      if (typingUsersContainer && filteredTypingUsers.length > 0) {
         /* Additional Users */
-        const filteredUserIds = Object.keys(this.props.typingUsers)
-          .filter(id => id !== _this.currentUserId)
-          .filter(id => !relationshipStore.isBlocked(id));
+        if (filteredTypingUsers.length > 3 && maxTypingUsers > 3) {
+          typingUsersContainer.props.children = translations.user ? [ translations.user ] : [];
 
-        if (filteredUserIds.length > 3 && maxTypingUsers > 3) {
-          let typingUsers = '';
-          const formatKeys = {
-            additionalUsers: filteredUserIds.length - maxTypingUsers
-          };
-
-          for (let i = 0; i < filteredUserIds.length; i++) {
-            const letter = String.fromCharCode(i + 97);
-            const currentIndex = i + 1;
-
-            if (currentIndex <= maxTypingUsers) {
-              if (currentIndex >= filteredUserIds.length) {
-                typingUsers += `${and} **!!${letter}!!**`;
-              } else {
-                typingUsers += `**!!${letter}!!**, `;
-              }
-
-              formatKeys[letter] = null;
-            } else {
-              typingUsers = typingUsers.replace(/,.$/, ` ${and} {additionalUsers, number} other user${formatKeys.additionalUsers > 1 ? 's' : ''}`);
+          outerLoop:
+          for (let i = 0; i < filteredTypingUsers.length; i++) {
+            const additionalUsers = filteredTypingUsers.length - i;
+            switch (true) {
+              case i === maxTypingUsers:
+                typingUsersContainer.props.children.push(`${translations.extra(additionalUsers)}${translations.typing}`);
+                break outerLoop;
+              case i === filteredTypingUsers.length - 1:
+                typingUsersContainer.props.children.push(translations.and);
+                break;
+              case i !== 0:
+                typingUsersContainer.props.children.push(translations.comma);
             }
+
+            const displayName = usernameUtils.getName(this.props.guildId, this.props.channel.id, filteredTypingUsers[i]);
+            typingUsersContainer.props.children.push(React.createElement('strong', {}, displayName));
           }
-
-          Messages.SMART_TYPERS.CUSTOM_USERS_TYPING = i18nParser.getMessage(`${typingUsers} ${typingMessage}`);
-
-          res.props.children[1].props.children = Messages.SMART_TYPERS.CUSTOM_USERS_TYPING.format(formatKeys);
         }
 
         /* Custom Typing Format */
         const typingFormat = getSetting('typingFormat', '');
-        if (typingFormat.length > 0 && typingFormat !== defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER && filteredUserIds.length > 0) {
-          const { children } = res.props.children[1].props;
-
+        if (typingFormat.length > 0 && typingFormat !== defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER) {
           const parsedFormat = i18nParser.getMessage(typingFormat);
           const replacement = ` ${typeof parsedFormat.format === 'function'
-            ? parsedFormat.format({ typingUsers: filteredUserIds.length })
+            ? parsedFormat.format({ typingUsers: filteredTypingUsers.length })
             : parsedFormat}`;
 
+          const { children } = typingUsersContainer.props;
           if (Array.isArray(children)) {
-            children[children.length - 1] = filteredUserIds.length > maxTypingUsers
-              ? children[children.length - 1].replace(typingMessage, replacement)
+            children[children.length - 1] = filteredTypingUsers.length > maxTypingUsers
+              ? children[children.length - 1].replace(translations.typing, replacement)
               : replacement;
           } else {
-            res.props.children[1].props.children = Messages.SEVERAL_USERS_TYPING.replace(typingMessage, replacement);
+            typingUsersContainer.props.children = Messages.SEVERAL_USERS_TYPING.replace(translations.typing, replacement);
           }
         }
 
         /* Additional Users Tooltip */
-        if (maxTypingUsers > 3 && filteredUserIds.length > maxTypingUsers) {
-          const { children } = res.props.children[1].props;
-          const additionalUsers = filteredUserIds.slice(maxTypingUsers, filteredUserIds.length).map(userId => {
-            const user = userStore.getUser(userId);
+        if (getSetting('additionalUsersTooltip', true) && filteredTypingUsers.length > maxTypingUsers) {
+          const additionalUsers = filteredTypingUsers.slice(maxTypingUsers, filteredTypingUsers.length).map(user => {
             const displayName = usernameUtils.getName(this.props.channel.guild_id, this.props.channel.id, user);
             return _this.parseUser(user, displayName);
           });
 
-          children[children.length - 1] = React.createElement(TooltipContainer, {
+          const makeAdditionalUsersTooltip = (child) => React.createElement(TooltipContainer, {
             text: additionalUsers.join(', '),
             element: 'span'
-          }, children[children.length - 1]);
+          }, child);
+
+          const { children } = typingUsersContainer.props;
+          if (Array.isArray(children)) {
+            children[children.length - 1] = makeAdditionalUsersTooltip(children[children.length - 1]);
+          } else {
+            typingUsersContainer.props.children = makeAdditionalUsersTooltip(typingUsersContainer.props.children);
+          }
         }
 
-        for (let i = 0; i < filteredUserIds.length; i++) {
-          const userId = filteredUserIds[i];
+        for (let i = 0; i < filteredTypingUsers.length; i++) {
           const guildId = this.props.channel.guild_id;
-          const userElement = res.props.children[1].props.children[i * 2];
+          const userElement = typingUsersContainer.props.children[i * 2];
           if (userElement && userElement.props) {
-            const user = userStore.getUser(userId);
-            const member = memberStore.getMember(guildId, userId) || {};
+            const user = filteredTypingUsers[i];
+            const member = memberStore.getMember(guildId, user.id) || {};
             const displayName = usernameUtils.getName(guildId, this.props.channel.id, user);
 
             /* User Format & Emoji Hider */
@@ -133,7 +152,7 @@ module.exports = class SmartTypers extends Plugin {
 
             /* Colour Gradient */
             if (this.props.channel.id === '1337') {
-              member.colorString = '#' + Number(userId).toString(16).slice(0, 6);
+              member.colorString = `#${Number(user.id).toString(16).slice(0, 6)}`;
             }
 
             userElement.props.children = (splitUsername.length > 0 ? splitUsername : [ _this.normalizeUsername(user.username, true) ]).map(substring => {
@@ -154,8 +173,8 @@ module.exports = class SmartTypers extends Plugin {
             /* User Popout and Context Menu */
             userElement.props = Object.assign({}, userElement.props, {
               className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
-              onClick: (e) => _this.handleUserClick(userId, this.props.channel, e),
-              onContextMenu: (e) => _this.openUserContextMenu(userId, guildId, this.props.channel, e)
+              onClick: (e) => _this.handleUserClick(user, this.props.channel, e),
+              onContextMenu: (e) => _this.openUserContextMenu(user, guildId, this.props.channel, e)
             });
           }
         }
@@ -168,19 +187,22 @@ module.exports = class SmartTypers extends Plugin {
 
       return res;
     });
+
+    inject('smartTypers-self', userStore, 'getNullableCurrentUser', (_, res) => this.state.selfTypingEnabled ? null : res);
   }
 
   pluginWillUnload () {
     powercord.api.settings.unregisterSettings('smart-typers');
 
     uninject('smartTypers-popouts');
+    uninject('smartTypers-self');
   }
 
-  handleUserClick (userId, channel, event) {
+  handleUserClick (user, channel, event) {
     if (channel.id !== '1337' && this.settings.get('userShiftClick', true) && event.shiftKey) {
       const { ComponentDispatch } = getModule([ 'ComponentDispatch' ], false);
       return ComponentDispatch.dispatchToLastSubscribed(constants.ComponentActions.INSERT_TEXT, {
-        content: `<@${userId}>`
+        content: `<@${user.id}>`
       });
     }
 
@@ -194,7 +216,7 @@ module.exports = class SmartTypers extends Plugin {
         containerClass: 'smartTypers-popout',
         render: (props) => React.createElement(UserPopout, {
           ...props,
-          userId,
+          userId: user.id,
           guildId
         }),
         shadow: false,
@@ -205,23 +227,22 @@ module.exports = class SmartTypers extends Plugin {
     }
   }
 
-  openUserContextMenu (userId, guildId, channel, event) {
+  openUserContextMenu (user, guildId, channel, event) {
     const GroupDMUserContextMenu = getModuleByDisplayName('GroupDMUserContextMenu', false);
     const GuildChannelUserContextMenu = getModuleByDisplayName('GuildChannelUserContextMenu', false);
-    const userStore = getModule([ 'getCurrentUser' ], false);
 
     if (this.settings.get('userContextMenu', true)) {
       if (!guildId) {
         return contextMenu.openContextMenu(event, (props) => React.createElement(GroupDMUserContextMenu, {
           ...props,
-          user: userStore.getUser(userId),
+          user,
           channel
         }));
       }
 
       contextMenu.openContextMenu(event, (props) => React.createElement(GuildChannelUserContextMenu, {
         ...props,
-        user: userStore.getUser(userId),
+        user,
         guildId,
         channelId: channel.id,
         showMediaItems: false,
