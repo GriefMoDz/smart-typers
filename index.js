@@ -21,7 +21,7 @@ module.exports = class SmartTypers extends Plugin {
   async startPlugin () {
     this.loadStylesheet('style.css');
     powercord.api.i18n.loadAllStrings(i18n);
-    powercord.api.settings.registerSettings("smart-typers", {
+    powercord.api.settings.registerSettings('smart-typers', {
       category: this.entityID,
       label: 'Smart Typers',
       render: (props) => React.createElement(Settings, {
@@ -171,7 +171,7 @@ module.exports = class SmartTypers extends Plugin {
   }
 
   pluginWillUnload () {
-    powercord.api.settings.unregisterSettings("smart-typers");
+    powercord.api.settings.unregisterSettings('smart-typers');
 
     uninject('smartTypers-popouts');
   }
