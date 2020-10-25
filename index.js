@@ -13,7 +13,6 @@ module.exports = class SmartTypers extends Plugin {
   constructor () {
     super();
 
-    this.state = { selfTypingEnabled: false };
     this.parser = getModule([ 'parse', 'parseTopic' ], false);
     this.classes = getModule([ 'typing', 'ellipsis' ], false);
   }
@@ -52,11 +51,6 @@ module.exports = class SmartTypers extends Plugin {
         .filter(id => !relationshipStore.isBlocked(id))
         .map(id => userStore.getUser(id))
         .filter(id => id !== null);
-
-      /* Self Typing */
-      if (this.props.typingUsers[_this.currentUserId]) {
-        _this.state.selfTypingEnabled = selfTyping;
-      }
 
       /* Typing Strings */
       const threeUsersTyping = Messages.THREE_USERS_TYPING.format({ a: null, b: null, c: null });
@@ -188,7 +182,15 @@ module.exports = class SmartTypers extends Plugin {
       return res;
     });
 
-    inject('smartTypers-self', userStore, 'getNullableCurrentUser', (_, res) => this.state.selfTypingEnabled ? null : res);
+    inject('smartTypers-self', userStore, 'getNullableCurrentUser', (_, res) => {
+      const typingUsersStore = getModule([ 'getTypingUsers' ], false);
+      const currentChannel = getModule([ 'getLastSelectedChannelId' ], false).getChannelId();
+      if (getSetting('selfTyping', false) && typingUsersStore.isTyping(currentChannel, this.currentUserId)) {
+        return null;
+      }
+
+      return res;
+    });
   }
 
   pluginWillUnload () {
