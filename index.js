@@ -13,8 +13,7 @@ module.exports = class SmartTypers extends Plugin {
   constructor () {
     super();
 
-    this.parser = getModule([ 'parse', 'parseTopic' ], false);
-    this.classes = getModule([ 'typing', 'ellipsis' ], false);
+    this.modules = {};
   }
 
   get currentUserId () {
@@ -33,23 +32,26 @@ module.exports = class SmartTypers extends Plugin {
       })
     });
 
-    const getSetting = (setting, defaultValue) => this.settings.get(setting, defaultValue);
+    const { getSetting } = powercord.api.settings._fluxProps(this.entityID);
 
-    const relationshipStore = await getModule([ 'getRelationships' ]);
-    const memberStore = await getModule([ 'initialize', 'getMember' ]);
-    const userStore = await getModule([ 'getCurrentUser' ]);
-    const usernameUtils = await getModule([ 'getName' ]);
-    const i18nParser = await getModule([ 'getMessage' ]);
+    this.getModule('parser', [ 'parse', 'parseTopic' ]);
+    this.getModule('classes', [ 'typing', 'ellipsis' ]);
+    this.getModule('relationshipStore', 'getRelationships');
+    this.getModule('memberStore', [ 'initialize', 'getMember' ]);
+    this.getModule('userStore', 'getCurrentUser');
+    this.getModule('usernameUtils', 'getName');
+    this.getModule('i18nParser', 'getMessage');
+
+    const selfTyping = getSetting('selfTyping', false);
 
     const _this = this;
     const TypingUsers = (await getModuleByDisplayName('FluxContainer(TypingUsers)')).prototype.render.call({ memoizedGetStateFromStores: () => ({}) }).type;
-    inject('smartTypers-popouts', TypingUsers.prototype, 'render', function (args, res) {
-      const selfTyping = getSetting('selfTyping', false);
+    inject('smartTypers-popouts', TypingUsers.prototype, 'render', function (_, res) {
       const maxTypingUsers = getSetting('maxTypingUsers', 3);
       const filteredTypingUsers = Object.keys(this.props.typingUsers)
         .filter(id => selfTyping ? id : id !== _this.currentUserId)
-        .filter(id => !relationshipStore.isBlocked(id))
-        .map(id => userStore.getUser(id))
+        .filter(id => !_this.modules.relationshipStore.isBlocked(id))
+        .map(id => _this.modules.userStore.getUser(id))
         .filter(id => id !== null);
 
       /* Typing Strings */
@@ -66,7 +68,7 @@ module.exports = class SmartTypers extends Plugin {
         return strings[strings.length - 1];
       };
 
-      const typingUsersContainer = findInReactTree(res, e => e.props && e.props.className && e.props.className === _this.classes.text);
+      const typingUsersContainer = findInReactTree(res, e => e.props && e.props.className && e.props.className === _this.modules.classes.text);
       if (typingUsersContainer && filteredTypingUsers.length > 0) {
         /* Additional Users */
         if (filteredTypingUsers.length > 3 && maxTypingUsers > 3) {
@@ -86,7 +88,7 @@ module.exports = class SmartTypers extends Plugin {
                 typingUsersContainer.props.children.push(translations.comma);
             }
 
-            const displayName = usernameUtils.getName(this.props.guildId, this.props.channel.id, filteredTypingUsers[i]);
+            const displayName = _this.modules.usernameUtils.getName(this.props.guildId, this.props.channel.id, filteredTypingUsers[i]);
             typingUsersContainer.props.children.push(React.createElement('strong', {}, displayName));
           }
         }
@@ -94,7 +96,7 @@ module.exports = class SmartTypers extends Plugin {
         /* Custom Typing Format */
         const typingFormat = getSetting('typingFormat', '');
         if (typingFormat.length > 0 && typingFormat !== defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER) {
-          const parsedFormat = i18nParser.getMessage(typingFormat);
+          const parsedFormat = _this.modules.i18nParser.getMessage(typingFormat);
           const replacement = ` ${typeof parsedFormat.format === 'function'
             ? parsedFormat.format({ typingUsers: filteredTypingUsers.length })
             : parsedFormat}`;
@@ -112,7 +114,7 @@ module.exports = class SmartTypers extends Plugin {
         /* Additional Users Tooltip */
         if (getSetting('additionalUsersTooltip', true) && filteredTypingUsers.length > maxTypingUsers) {
           const additionalUsers = filteredTypingUsers.slice(maxTypingUsers, filteredTypingUsers.length).map(user => {
-            const displayName = usernameUtils.getName(this.props.channel.guild_id, this.props.channel.id, user);
+            const displayName = _this.modules.usernameUtils.getName(this.props.channel.guild_id, this.props.channel.id, user);
             return _this.parseUser(user, displayName);
           });
 
@@ -134,8 +136,8 @@ module.exports = class SmartTypers extends Plugin {
           const userElement = typingUsersContainer.props.children[i * 2];
           if (userElement && userElement.props) {
             const user = filteredTypingUsers[i];
-            const member = memberStore.getMember(guildId, user.id) || {};
-            const displayName = usernameUtils.getName(guildId, this.props.channel.id, user);
+            const member = _this.modules.memberStore.getMember(guildId, user.id) || {};
+            const displayName = _this.modules.usernameUtils.getName(guildId, this.props.channel.id, user);
 
             /* User Format & Emoji Hider */
             const userFormat = getSetting('userFormat', '**{displayName}**');
@@ -150,7 +152,7 @@ module.exports = class SmartTypers extends Plugin {
             }
 
             userElement.props.children = (splitUsername.length > 0 ? splitUsername : [ _this.normalizeUsername(user.username, true) ]).map(substring => {
-              const parseFormat = _this.parser.reactParserFor(_this.getCustomRules());
+              const parseFormat = _this.modules.parser.reactParserFor(_this.getCustomRules());
               if (!_this.getEmojiRegex(true).test(substring) && getSetting('colorGradient', false) && member.colorString) {
                 return React.createElement('span', {
                   className: 'gradient',
@@ -182,11 +184,15 @@ module.exports = class SmartTypers extends Plugin {
       return res;
     });
 
+    const typingUsersStore = this.getModule('typingUsersStore', 'getTypingUsers');
+    const currentChannel = this.getModule('currentChannel', 'getLastSelectedChannelId').getChannelId();
+    const userStore = getModule([ 'getCurrentUser' ], false);
+
     inject('smartTypers-self', userStore, 'getNullableCurrentUser', (_, res) => {
-      const typingUsersStore = getModule([ 'getTypingUsers' ], false);
-      const currentChannel = getModule([ 'getLastSelectedChannelId' ], false).getChannelId();
-      if (getSetting('selfTyping', false) && typingUsersStore.isTyping(currentChannel, this.currentUserId)) {
-        return null;
+      if (selfTyping) {
+        if (typingUsersStore.isTyping(currentChannel, this.currentUserId)) {
+          return null;
+        }
       }
 
       return res;
@@ -274,7 +280,7 @@ module.exports = class SmartTypers extends Plugin {
   }
 
   getCustomRules () {
-    return global._.omit(this.parser.defaultRules, [ 'autolink', 'blockQuote', 'br', 'channel', 'codeBlock', 'roleMention', 'spoiler', 'url' ]);
+    return global._.omit(this.modules.parser.defaultRules, [ 'autolink', 'blockQuote', 'br', 'channel', 'codeBlock', 'roleMention', 'spoiler', 'url' ]);
   }
 
   parseUser (user, displayName) {
@@ -293,5 +299,17 @@ module.exports = class SmartTypers extends Plugin {
       .map(c => parseInt((c * (100 + percent)) / 100))
       .map(c => (c < 255 ? c : 255))
       .map(c => c.toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  getModule (id, filter) {
+    if (typeof filter === 'string') {
+      filter = [ filter ];
+    }
+
+    if (!this.modules[id]) {
+      this.modules[id] = getModule(filter, false);
+    }
+
+    return this.modules[id];
   }
 };
