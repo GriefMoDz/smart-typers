@@ -185,12 +185,12 @@ module.exports = class SmartTypers extends Plugin {
     });
 
     const typingUsersStore = this.getModule('typingUsersStore', 'getTypingUsers');
-    const currentChannel = this.getModule('currentChannel', 'getLastSelectedChannelId').getChannelId();
-    const userStore = getModule([ 'getCurrentUser' ], false);
+    const channelStore = this.getModule('channelStore', 'getLastSelectedChannelId');
+    const userStore = await getModule([ 'getCurrentUser' ]);
 
     inject('smartTypers-self', userStore, 'getNullableCurrentUser', (_, res) => {
       if (selfTyping) {
-        if (typingUsersStore.isTyping(currentChannel, this.currentUserId)) {
+        if (typingUsersStore.isTyping(channelStore.getChannelId(), this.currentUserId)) {
           return null;
         }
       }
@@ -302,12 +302,17 @@ module.exports = class SmartTypers extends Plugin {
   }
 
   getModule (id, filter) {
-    if (typeof filter === 'string') {
+    if (!Array.isArray(filter)) {
       filter = [ filter ];
     }
 
     if (!this.modules[id]) {
-      this.modules[id] = getModule(filter, false);
+      const mod = getModule(filter, false);
+      if (mod) {
+        this.modules[id] = mod;
+      } else {
+        return this.error(`Failed to fetch module: '${id} -> ${filter}' - please contact "${this.manifest.author}" if this error persists!`);
+      }
     }
 
     return this.modules[id];
