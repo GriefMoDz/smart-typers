@@ -46,7 +46,7 @@ module.exports = class SmartTypers extends Plugin {
 
     const _this = this;
     const TypingUsers = (await getModuleByDisplayName('FluxContainer(TypingUsers)')).prototype.render.call({ memoizedGetStateFromStores: () => ({}) }).type;
-    inject('smartTypers-popouts', TypingUsers.prototype, 'render', function (_, res) {
+    inject('smartTypers-logic', TypingUsers.prototype, 'render', function (_, res) {
       const maxTypingUsers = getSetting('maxTypingUsers', 3);
       const filteredTypingUsers = Object.keys(this.props.typingUsers)
         .filter(id => selfTyping ? id : id !== _this.currentUserId)
@@ -118,8 +118,9 @@ module.exports = class SmartTypers extends Plugin {
             return _this.parseUser(user, displayName);
           });
 
+          const parseFormat = _this.modules.parser.reactParserFor(_this.getCustomRules());
           const makeAdditionalUsersTooltip = (child) => React.createElement(TooltipContainer, {
-            text: additionalUsers.join(', '),
+            text: parseFormat(additionalUsers.join(', ')),
             element: 'span'
           }, child);
 
@@ -177,32 +178,34 @@ module.exports = class SmartTypers extends Plugin {
 
         /* Disable Typing Indicator */
         if (getSetting('disableIndicator', false)) {
-          delete res.props.children[0];
+          res.props.children[0].props.hide = true;
         }
       }
 
       return res;
     });
 
-    const typingUsersStore = this.getModule('typingUsersStore', 'getTypingUsers');
-    const channelStore = this.getModule('channelStore', 'getLastSelectedChannelId');
-    const userStore = await getModule([ 'getCurrentUser' ]);
-
-    inject('smartTypers-self', userStore, 'getNullableCurrentUser', (_, res) => {
-      if (selfTyping) {
-        if (typingUsersStore.isTyping(channelStore.getChannelId(), this.currentUserId)) {
-          return null;
-        }
-      }
-
-      return res;
-    });
+    /*
+     * const typingUsersStore = this.getModule('typingUsersStore', 'getTypingUsers');
+     * const channelStore = this.getModule('channelStore', 'getLastSelectedChannelId');
+     * const userStore = await getModule([ 'getCurrentUser' ]);
+     *
+     * inject('smartTypers-self', userStore, 'getNullableCurrentUser', (_, res) => {
+     * if (selfTyping) {
+     *  if (typingUsersStore.isTyping(channelStore.getChannelId(), this.currentUserId)) {
+     *    return null;
+     *  }
+     * }
+     *
+     * return res;
+     * });
+     */
   }
 
   pluginWillUnload () {
     powercord.api.settings.unregisterSettings('smart-typers');
 
-    uninject('smartTypers-popouts');
+    uninject('smartTypers-logic');
     uninject('smartTypers-self');
   }
 

@@ -55,6 +55,7 @@ module.exports = class Settings extends React.PureComponent {
         note={Messages.SMART_TYPERS.SELF_TYPING_DESC}
         value={getSetting('selfTyping', false)}
         onChange={() => toggleSetting('selfTyping')}
+        disabled
       >
         {Messages.SMART_TYPERS.SELF_TYPING}
       </SwitchItem>
