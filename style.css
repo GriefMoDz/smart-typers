@@ -3,6 +3,11 @@
   filter: blur(1px);
 }
 
+.smartTypers-moreUsers {
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+
 .typing-user.clickable {
   cursor: pointer !important;
 }
@@ -11,6 +16,19 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-image: linear-gradient(45deg, var(--smartTypers-primary), var(--smartTypers-secondary));
+}
+
+.typing-user em {
+  font-style: italic;
+}
+
+.typing-users {
+  margin: 0 5px;
+}
+
+.typing-users :last-child[class|='avatarMasked'] {
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 /** Settings **/
@@ -46,6 +64,8 @@
   border-radius: 5px;
   padding: 0 5px;
   font-size: 10px;
+  line-height: 16px;
+  text-transform: uppercase;
 }
 
 .smartTypers-input {

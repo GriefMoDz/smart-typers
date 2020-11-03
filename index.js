@@ -68,6 +68,18 @@ module.exports = class SmartTypers extends Plugin {
         return strings[strings.length - 1];
       };
 
+      /* Typing Users with Avatars */
+      const TypingUsersWithAvatars = require('./components/TypingUsersWithAvatars');
+      const showUserAvatars = getSetting('userAvatars', false);
+
+      if (showUserAvatars && filteredTypingUsers.length > 0) {
+        res.props.children[1] = React.createElement(TypingUsersWithAvatars, {
+          main: _this,
+          channel: this.props.channel,
+          typingUsers: filteredTypingUsers
+        });
+      }
+
       const typingUsersContainer = findInReactTree(res, e => e.props && e.props.className && e.props.className === _this.modules.classes.text);
       if (typingUsersContainer && filteredTypingUsers.length > 0) {
         /* Additional Users */
@@ -175,11 +187,11 @@ module.exports = class SmartTypers extends Plugin {
             });
           }
         }
+      }
 
-        /* Disable Typing Indicator */
-        if (getSetting('disableIndicator', false)) {
-          res.props.children[0].props.hide = true;
-        }
+      /* Disable Typing Indicator */
+      if (getSetting('disableIndicator', false)) {
+        res.props.children[0].props.hide = true;
       }
 
       return res;

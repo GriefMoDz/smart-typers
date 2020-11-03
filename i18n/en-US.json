@@ -1,5 +1,7 @@
 {
   "SMART_TYPERS": {
+    "USER_AVATARS_DESC": "Displays each user with their respective avatar instead of their display name.",
+    "USER_AVATARS": "User Avatars",
     "HIDE_EMOJIS_DESC": "Filters out emojis from display names (will automatically fallback to username, if a nickname is set and it only contains emojis).",
     "HIDE_EMOJIS": "Hide Emojis",
     "COLORED_GRADIENT": "Colored Gradient",

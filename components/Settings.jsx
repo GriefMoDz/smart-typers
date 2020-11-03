@@ -31,9 +31,18 @@ module.exports = class Settings extends React.PureComponent {
     return <>
       <FormTitle>{Messages.APPEARANCE}</FormTitle>
       <SwitchItem
+        note={Messages.SMART_TYPERS.USER_AVATARS_DESC}
+        value={getSetting('userAvatars', false)}
+        onChange={() => toggleSetting('userAvatars')}
+      >
+        {Messages.SMART_TYPERS.USER_AVATARS}
+        <div className='smartTypers-beta'>Beta</div>
+      </SwitchItem>
+      <SwitchItem
         note={Messages.SMART_TYPERS.HIDE_EMOJIS_DESC}
         value={getSetting('hideEmojis', false)}
         onChange={() => toggleSetting('hideEmojis')}
+        disabled={getSetting('userAvatars', false)}
       >
         {Messages.SMART_TYPERS.HIDE_EMOJIS}
       </SwitchItem>
@@ -41,6 +50,7 @@ module.exports = class Settings extends React.PureComponent {
         note={Messages.SMART_TYPERS.COLORED_GRADIENT_DESC}
         value={getSetting('colorGradient', false)}
         onChange={() => toggleSetting('colorGradient')}
+        disabled={getSetting('userAvatars', false)}
       >
         {Messages.SMART_TYPERS.COLORED_GRADIENT}
       </SwitchItem>
@@ -87,6 +97,7 @@ module.exports = class Settings extends React.PureComponent {
         title={[ Messages.SMART_TYPERS.USER_FORMAT, <div className='smartTypers-beta'>{Messages.BETA}</div> ]}
         buttonText={Messages.SMART_TYPERS[`${this.state.showVariables ? 'HIDE' : 'SHOW'}_VARIABLES`]}
         buttonIcon='fal fa-brackets-curly'
+        disabled={getSetting('userAvatars', false)}
       >
         {this.state.showVariables && <Flex>
           {[ 'username', 'displayName', 'discriminator', 'tag', 'id' ].map(variable => (
