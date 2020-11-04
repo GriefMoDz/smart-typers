@@ -4,6 +4,7 @@ const { React, getModuleByDisplayName, getModule, contextMenu, i18n: { _proxyCon
 const { findInReactTree } = require('powercord/util');
 const { inject, uninject } = require('powercord/injector');
 
+const TypingUsersWithAvatars = require('./components/TypingUsersWithAvatars');
 const Settings = require('./components/Settings');
 const i18n = require('./i18n');
 
@@ -69,7 +70,6 @@ module.exports = class SmartTypers extends Plugin {
       };
 
       /* Typing Users with Avatars */
-      const TypingUsersWithAvatars = require('./components/TypingUsersWithAvatars');
       const showUserAvatars = getSetting('userAvatars', false);
 
       if (showUserAvatars && filteredTypingUsers.length > 0) {
@@ -190,7 +190,7 @@ module.exports = class SmartTypers extends Plugin {
       }
 
       /* Disable Typing Indicator */
-      if (getSetting('disableIndicator', false)) {
+      if (getSetting('disableIndicator', false) && filteredTypingUsers.length > 0) {
         res.props.children[0].props.hide = true;
       }
 
