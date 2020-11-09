@@ -60,7 +60,9 @@ module.exports = class SmartTypers extends Plugin {
       const strings = threeUsersTyping.filter(element => typeof element === 'string');
       const translations = Object.fromEntries(strings.map((str, index) => {
         const keys = [ 'user', 'comma', 'and', 'typing' ];
-        return [ keys[strings.length > 3 ? index : index + 1], str ];
+        const key = [ keys[strings.length > 3 ? index : index + 1] ];
+
+        return [ key, str ];
       }));
 
       translations.extra = (num) => {
@@ -69,21 +71,21 @@ module.exports = class SmartTypers extends Plugin {
         return strings[strings.length - 1];
       };
 
-      /* Typing Users with Avatars */
-      const showUserAvatars = getSetting('userAvatars', false);
+      if (filteredTypingUsers.length > 0) {
+        const typingUsersContainer = findInReactTree(res, e => e.props && e.props.className && e.props.className === _this.modules.classes.text);
 
-      if (showUserAvatars && filteredTypingUsers.length > 0) {
-        res.props.children[1] = React.createElement(TypingUsersWithAvatars, {
-          main: _this,
-          channel: this.props.channel,
-          typingUsers: filteredTypingUsers
-        });
-      }
+        /* Typing Users with Avatars */
+        const showUserAvatars = getSetting('userAvatars', false);
+        if (showUserAvatars) {
+          res.props.children[1] = React.createElement(TypingUsersWithAvatars, {
+            main: _this,
+            channel: this.props.channel,
+            typingUsers: filteredTypingUsers
+          }, translations.typing);
+        }
 
-      const typingUsersContainer = findInReactTree(res, e => e.props && e.props.className && e.props.className === _this.modules.classes.text);
-      if (typingUsersContainer && filteredTypingUsers.length > 0) {
         /* Additional Users */
-        if (filteredTypingUsers.length > 3 && maxTypingUsers > 3) {
+        if (!showUserAvatars && filteredTypingUsers.length > 3 && maxTypingUsers > 3) {
           typingUsersContainer.props.children = translations.user ? [ translations.user ] : [];
 
           outerLoop:
@@ -108,90 +110,100 @@ module.exports = class SmartTypers extends Plugin {
         /* Custom Typing Format */
         const typingFormat = getSetting('typingFormat', '');
         if (typingFormat.length > 0 && typingFormat !== defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER) {
-          const parsedFormat = _this.modules.i18nParser.getMessage(typingFormat);
-          const replacement = ` ${typeof parsedFormat.format === 'function'
-            ? parsedFormat.format({ typingUsers: filteredTypingUsers.length })
-            : parsedFormat}`;
+          try {
+            const parsedFormat = _this.modules.i18nParser.getMessage(typingFormat);
+            const replacement = typeof parsedFormat.format === 'function'
+              ? [ ' ', parsedFormat.format({ typingUsers: filteredTypingUsers.length }) ]
+              : ` ${parsedFormat}`;
 
-          const { children } = typingUsersContainer.props;
-          if (Array.isArray(children)) {
-            children[children.length - 1] = filteredTypingUsers.length > maxTypingUsers
-              ? children[children.length - 1].replace(translations.typing, replacement)
-              : replacement;
-          } else {
-            typingUsersContainer.props.children = Messages.SEVERAL_USERS_TYPING.replace(translations.typing, replacement);
-          }
-        }
-
-        /* Additional Users Tooltip */
-        if (getSetting('additionalUsersTooltip', true) && filteredTypingUsers.length > maxTypingUsers) {
-          const additionalUsers = filteredTypingUsers.slice(maxTypingUsers, filteredTypingUsers.length).map(user => {
-            const displayName = _this.modules.usernameUtils.getName(this.props.channel.guild_id, this.props.channel.id, user);
-            return _this.parseUser(user, displayName);
-          });
-
-          const parseFormat = _this.modules.parser.reactParserFor(_this.getCustomRules());
-          const makeAdditionalUsersTooltip = (child) => React.createElement(TooltipContainer, {
-            text: parseFormat(additionalUsers.join(', ')),
-            element: 'span'
-          }, child);
-
-          const { children } = typingUsersContainer.props;
-          if (Array.isArray(children)) {
-            children[children.length - 1] = makeAdditionalUsersTooltip(children[children.length - 1]);
-          } else {
-            typingUsersContainer.props.children = makeAdditionalUsersTooltip(typingUsersContainer.props.children);
-          }
-        }
-
-        for (let i = 0; i < filteredTypingUsers.length; i++) {
-          const guildId = this.props.channel.guild_id;
-          const userElement = typingUsersContainer.props.children[i * 2];
-          if (userElement && userElement.props) {
-            const user = filteredTypingUsers[i];
-            const member = _this.modules.memberStore.getMember(guildId, user.id) || {};
-            const displayName = _this.modules.usernameUtils.getName(guildId, this.props.channel.id, user);
-
-            /* User Format & Emoji Hider */
-            const userFormat = getSetting('userFormat', '**{displayName}**');
-            userElement.type = userFormat.length > 0 && !(/^\*\*((?:\\[\s\S]|[^\\])+?)\*\*(?!\*)/).test(userFormat) ? 'span' : 'strong';
-
-            const formattedUser = _this.parseUser(user, displayName);
-            const splitUsername = _this.normalizeUsername(formattedUser).split(_this.getEmojiRegex()).filter(Boolean);
-
-            /* Colour Gradient */
-            if (this.props.channel.id === '1337') {
-              member.colorString = `#${Number(user.id).toString(16).slice(0, 6)}`;
+            if (showUserAvatars) {
+              res.props.children[1].props.children = _this.replaceStringWithElem(res.props.children[1].props.children, translations.typing, replacement);
+            } else {
+              const { children } = typingUsersContainer.props;
+              if (Array.isArray(children)) {
+                children[children.length - 1] = filteredTypingUsers.length > maxTypingUsers
+                  ? _this.replaceStringWithElem(children[children.length - 1], translations.typing, replacement)
+                  : replacement;
+              } else {
+                typingUsersContainer.props.children = _this.replaceStringWithElem(Messages.SEVERAL_USERS_TYPING, translations.typing, replacement);
+              }
             }
+          } catch (err) {
+            res.props.children[1] = React.createElement('span', { style: { margin: '0 5px' } }, err.toString());
+          }
+        }
 
-            userElement.props.children = (splitUsername.length > 0 ? splitUsername : [ _this.normalizeUsername(user.username, true) ]).map(substring => {
-              const parseFormat = _this.modules.parser.reactParserFor(_this.getCustomRules());
-              if (!_this.getEmojiRegex(true).test(substring) && getSetting('colorGradient', false) && member.colorString) {
-                return React.createElement('span', {
-                  className: 'gradient',
-                  style: {
-                    '--smartTypers-primary': member.colorString,
-                    '--smartTypers-secondary': _this.shadeColor(member.colorString, 75)
-                  }
-                }, substring);
+        if (!showUserAvatars) {
+          /* Additional Users Tooltip */
+          if (getSetting('additionalUsersTooltip', true) && filteredTypingUsers.length > maxTypingUsers) {
+            const additionalUsers = filteredTypingUsers.slice(maxTypingUsers, filteredTypingUsers.length).map(user => {
+              const displayName = _this.modules.usernameUtils.getName(this.props.channel.guild_id, this.props.channel.id, user);
+              return _this.parseUser(user, displayName);
+            });
+
+            const parseFormat = _this.modules.parser.reactParserFor(_this.getCustomRules());
+            const makeAdditionalUsersTooltip = (child) => React.createElement(TooltipContainer, {
+              text: parseFormat(additionalUsers.join(', ')),
+              element: 'span'
+            }, child);
+
+            const { children } = typingUsersContainer.props;
+            if (Array.isArray(children)) {
+              children[children.length - 1] = makeAdditionalUsersTooltip(children[children.length - 1]);
+            } else {
+              typingUsersContainer.props.children = makeAdditionalUsersTooltip(typingUsersContainer.props.children);
+            }
+          }
+
+          for (let i = 0; i < filteredTypingUsers.length; i++) {
+            const guildId = this.props.channel.guild_id;
+            const userElement = typingUsersContainer.props.children[i * 2];
+            if (userElement && userElement.props) {
+              const user = filteredTypingUsers[i];
+              const member = _this.modules.memberStore.getMember(guildId, user.id) || {};
+              const displayName = _this.modules.usernameUtils.getName(guildId, this.props.channel.id, user);
+
+              /* User Format & Emoji Hider */
+              const userFormat = getSetting('userFormat', '**{displayName}**');
+              userElement.type = userFormat.length > 0 && !(/^\*\*((?:\\[\s\S]|[^\\])+?)\*\*(?!\*)/).test(userFormat) ? 'span' : 'strong';
+
+              const formattedUser = _this.parseUser(user, displayName);
+              const splitUsername = _this.normalizeUsername(formattedUser).split(_this.getEmojiRegex()).filter(Boolean);
+
+              /* Colour Gradient */
+              if (this.props.channel.id === '1337') {
+                member.colorString = `#${Number(user.id).toString(16).slice(0, 6)}`;
               }
 
-              return parseFormat(substring);
-            });
+              userElement.props.children = (splitUsername.length > 0 ? splitUsername : [ _this.normalizeUsername(user.username, true) ]).map(substring => {
+                const parseFormat = _this.modules.parser.reactParserFor(_this.getCustomRules());
+                if (!_this.getEmojiRegex(true).test(substring) && getSetting('colorGradient', false) && member.colorString) {
+                  return React.createElement('span', {
+                    className: 'gradient',
+                    style: {
+                      '--smartTypers-primary': member.colorString,
+                      '--smartTypers-secondary': _this.shadeColor(member.colorString, 75)
+                    }
+                  }, substring);
+                }
 
-            /* User Popout and Context Menu */
-            userElement.props = Object.assign({}, userElement.props, {
-              className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
-              onClick: (e) => _this.handleUserClick(user, this.props.channel, e),
-              onContextMenu: (e) => _this.openUserContextMenu(user, guildId, this.props.channel, e)
-            });
+                return parseFormat(substring);
+              });
+
+              /* User Popout and Context Menu */
+              userElement.props = Object.assign({}, userElement.props, {
+                className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
+                onClick: (e) => _this.handleUserClick(user, this.props.channel, e),
+                onContextMenu: (e) => _this.openUserContextMenu(user, guildId, this.props.channel, e)
+              });
+            }
           }
         }
-      }
 
-      /* Disable Typing Indicator */
-      if (getSetting('disableIndicator', false) && filteredTypingUsers.length > 0) {
-        res.props.children[0].props.hide = true;
+        /* Disable Typing Indicator */
+        if (getSetting('disableIndicator', false)) {
+          res.props.children[0].props.hide = true;
+        }
       }
 
       return res;
@@ -314,6 +326,20 @@ module.exports = class SmartTypers extends Plugin {
       .map(c => parseInt((c * (100 + percent)) / 100))
       .map(c => (c < 255 ? c : 255))
       .map(c => c.toString(16).padStart(2, '0')).join('')}`;
+  }
+
+  replaceStringWithElem (string, value, replacement) {
+    const result = [];
+    const parts = string.split(value);
+
+    for (let i = 0; i < parts.length; i++) {
+      result.push(parts[i]);
+      result.push(replacement);
+    }
+
+    result.pop();
+
+    return result;
   }
 
   getModule (id, filter) {

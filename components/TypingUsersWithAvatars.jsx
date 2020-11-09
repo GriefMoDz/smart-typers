@@ -9,18 +9,13 @@ module.exports = class TypingUsers extends React.PureComponent {
   render () {
     const { main } = this.props;
 
-    const typingMessageParsed = main.modules.i18nParser.getMessage(main.settings.get('typingFormat', ''));
-    const typingMessage = ` ${typeof typingMessageParsed.format === 'function'
-      ? typingMessageParsed.format({ typingUsers: this.props.typingUsers.length })
-      : typingMessageParsed}`;
-
     return [ React.createElement(VoiceUserSummaryItem, {
       className: 'typing-users',
       users: this.props.typingUsers,
       renderUser: this.renderTypingUser.bind(this),
       renderMoreUsers: this.renderTypingUsers.bind(this),
       max: main.settings.get('maxTypingUsers', -1)
-    }), typingMessage ];
+    }), this.props.children ];
   }
 
   renderTypingUser (...args) {
