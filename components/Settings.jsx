@@ -13,6 +13,18 @@ module.exports = class Settings extends React.PureComponent {
     this.state = {
       showVariables: false
     };
+
+    this.checkForOverrides = () => {
+      const settingsTabs = powercord.api.settings.tabs;
+      const hasRoleColorEverywhere = settingsTabs.hasOwnProperty('rceverywhere');
+      if (hasRoleColorEverywhere) {
+        const tab = settingsTabs.rceverywhere;
+        const fluxProps = powercord.api.settings._fluxProps(tab.category);
+        if (fluxProps.getSetting('typing', true)) {
+          powercord.api.settings._fluxProps(tab.category).updateSetting('typing', false);
+        }
+      }
+    };
   }
 
   render () {
@@ -33,7 +45,7 @@ module.exports = class Settings extends React.PureComponent {
       <SwitchItem
         note={Messages.SMART_TYPERS.USER_AVATARS_DESC}
         value={getSetting('userAvatars', false)}
-        onChange={() => toggleSetting('userAvatars')}
+        onChange={() => toggleSetting('userAvatars', false)}
       >
         {Messages.SMART_TYPERS.USER_AVATARS}
         <div className='smartTypers-beta'>Beta</div>
@@ -41,7 +53,7 @@ module.exports = class Settings extends React.PureComponent {
       <SwitchItem
         note={Messages.SMART_TYPERS.HIDE_EMOJIS_DESC}
         value={getSetting('hideEmojis', false)}
-        onChange={() => toggleSetting('hideEmojis')}
+        onChange={() => toggleSetting('hideEmojis', false)}
         disabled={getSetting('userAvatars', false)}
       >
         {Messages.SMART_TYPERS.HIDE_EMOJIS}
@@ -49,7 +61,13 @@ module.exports = class Settings extends React.PureComponent {
       <SwitchItem
         note={Messages.SMART_TYPERS.COLORED_GRADIENT_DESC}
         value={getSetting('colorGradient', false)}
-        onChange={() => toggleSetting('colorGradient')}
+        onChange={(checked) => {
+          if (checked) {
+            this.checkForOverrides();
+          }
+
+          return toggleSetting('colorGradient', false);
+        }}
         disabled={getSetting('userAvatars', false)}
       >
         {Messages.SMART_TYPERS.COLORED_GRADIENT}
@@ -57,14 +75,14 @@ module.exports = class Settings extends React.PureComponent {
       <SwitchItem
         note={Messages.SMART_TYPERS.DISABLE_INDICATOR_DESC}
         value={getSetting('disableIndicator', false)}
-        onChange={() => toggleSetting('disableIndicator')}
+        onChange={() => toggleSetting('disableIndicator', false)}
       >
         {Messages.SMART_TYPERS.DISABLE_INDICATOR}
       </SwitchItem>
       <SwitchItem
         note={Messages.SMART_TYPERS.SELF_TYPING_DESC}
         value={getSetting('selfTyping', false)}
-        onChange={() => toggleSetting('selfTyping')}
+        onChange={() => toggleSetting('selfTyping', false)}
         disabled
       >
         {Messages.SMART_TYPERS.SELF_TYPING}
@@ -122,14 +140,14 @@ module.exports = class Settings extends React.PureComponent {
       <SwitchItem
         note={Messages.SMART_TYPERS.USER_POPOUT_DESC}
         value={getSetting('userPopout', true)}
-        onChange={() => toggleSetting('userPopout')}
+        onChange={() => toggleSetting('userPopout', true)}
       >
         {Messages.SMART_TYPERS.USER_POPOUT}
       </SwitchItem>
       <SwitchItem
         note={Messages.SMART_TYPERS.USER_CONTEXT_MENU_DESC}
         value={getSetting('userContextMenu', true)}
-        onChange={() => toggleSetting('userContextMenu')}
+        onChange={() => toggleSetting('userContextMenu', true)}
       >
         {Messages.SMART_TYPERS.USER_CONTEXT_MENU}
       </SwitchItem>
@@ -141,7 +159,7 @@ module.exports = class Settings extends React.PureComponent {
           }, text)
         })}
         value={getSetting('userShiftClick', true)}
-        onChange={() => toggleSetting('userShiftClick')}
+        onChange={() => toggleSetting('userShiftClick', true)}
       >
         {Messages.SMART_TYPERS.USER_SHIFT_CLICK}
       </SwitchItem>

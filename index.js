@@ -43,14 +43,14 @@ module.exports = class SmartTypers extends Plugin {
     this.getModule('usernameUtils', 'getName');
     this.getModule('i18nParser', 'getMessage');
 
-    const selfTyping = getSetting('selfTyping', false);
+    // const selfTyping = getSetting('selfTyping', false);
 
     const _this = this;
     const TypingUsers = (await getModuleByDisplayName('FluxContainer(TypingUsers)')).prototype.render.call({ memoizedGetStateFromStores: () => ({}) }).type;
     inject('smartTypers-logic', TypingUsers.prototype, 'render', function (_, res) {
       const maxTypingUsers = getSetting('maxTypingUsers', 3);
       const filteredTypingUsers = Object.keys(this.props.typingUsers)
-        .filter(id => selfTyping ? id : id !== _this.currentUserId)
+        .filter(id => /* selfTyping ? id : */ id !== _this.currentUserId)
         .filter(id => !_this.modules.relationshipStore.isBlocked(id))
         .map(id => _this.modules.userStore.getUser(id))
         .filter(id => id !== null);
@@ -157,7 +157,7 @@ module.exports = class SmartTypers extends Plugin {
 
           for (let i = 0; i < filteredTypingUsers.length; i++) {
             const guildId = this.props.channel.guild_id;
-            const userElement = typingUsersContainer.props.children[i * 2];
+            const userElement = typingUsersContainer?.props?.children[i * 2];
             if (userElement && userElement.props) {
               const user = filteredTypingUsers[i];
               const member = _this.modules.memberStore.getMember(guildId, user.id) || {};

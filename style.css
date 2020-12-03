@@ -39,7 +39,8 @@
   border-radius: 5px !important;
 }
 
-.smartTypers-preview [class|='typing'] {
+.smartTypers-preview .typing-2GQL18 {
+  margin: 0;
   position: initial !important;
 }
 
@@ -72,7 +73,7 @@
   margin-bottom: 5px;
 }
 
-.smartTypers-input:not(.disabled-29eJ21):hover {
+.smartTypers-input:not([class*='disabled']):hover {
   border-color: rgba(114, 137, 218, .3);
 }
 
