@@ -73,6 +73,7 @@
   margin-bottom: 5px;
 }
 
+.smartTypers-input:not([class*='disabled']):focus-within,
 .smartTypers-input:not([class*='disabled']):hover {
   border-color: rgba(114, 137, 218, .3);
 }

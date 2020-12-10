@@ -14,7 +14,7 @@ module.exports = class TypingUsers extends React.PureComponent {
       users: this.props.typingUsers,
       renderUser: this.renderTypingUser.bind(this),
       renderMoreUsers: this.renderTypingUsers.bind(this),
-      max: main.settings.get('maxTypingUsers', -1)
+      max: main.settings.get('maxTypingUsers', -1) + 1
     }), this.props.children ];
   }
 

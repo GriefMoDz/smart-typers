@@ -1,4 +1,3 @@
-/* eslint-disable object-property-newline */
 const { Plugin } = require('powercord/entities');
 const { React, getModuleByDisplayName, getModule, contextMenu, i18n: { _proxyContext: { defaultMessages }, Messages }, constants } = require('powercord/webpack');
 const { findInReactTree } = require('powercord/util');
@@ -77,11 +76,14 @@ module.exports = class SmartTypers extends Plugin {
         /* Typing Users with Avatars */
         const showUserAvatars = getSetting('userAvatars', false);
         if (showUserAvatars) {
+          const typingUsersContainerChildren = typingUsersContainer.props.children;
+          const typingMessage = typingUsersContainerChildren[typingUsersContainerChildren.length - 1];
+
           res.props.children[1] = React.createElement(TypingUsersWithAvatars, {
             main: _this,
             channel: this.props.channel,
             typingUsers: filteredTypingUsers
-          }, translations.typing);
+          }, typingMessage !== '.' ? typingMessage : translations.typing);
         }
 
         /* Additional Users */
@@ -243,7 +245,6 @@ module.exports = class SmartTypers extends Plugin {
 
     const UserPopout = getModuleByDisplayName('UserPopout', false);
     const PopoutDispatcher = getModule([ 'openPopout' ], false);
-    const guildId = channel.guild_id;
 
     if (this.settings.get('userPopout', true) && event.target) {
       PopoutDispatcher.openPopout(event.target, {
@@ -252,7 +253,7 @@ module.exports = class SmartTypers extends Plugin {
         render: (props) => React.createElement(UserPopout, {
           ...props,
           userId: user.id,
-          guildId
+          guildId: channel.guild_id
         }),
         shadow: false,
         position: 'bottom'
@@ -267,27 +268,22 @@ module.exports = class SmartTypers extends Plugin {
     const GuildChannelUserContextMenu = getModuleByDisplayName('GuildChannelUserContextMenu', false);
 
     if (this.settings.get('userContextMenu', true)) {
-      if (!guildId) {
-        return contextMenu.openContextMenu(event, (props) => React.createElement(GroupDMUserContextMenu, {
-          ...props,
-          user,
-          channel
-        }));
-      }
-
-      contextMenu.openContextMenu(event, (props) => React.createElement(GuildChannelUserContextMenu, {
-        ...props,
-        user,
-        guildId,
+      const UserContextMenu = guildId ? GuildChannelUserContextMenu : GroupDMUserContextMenu;
+      const defaultProps = Object.assign({ user }, guildId ? { guildId,
         channelId: channel.id,
         showMediaItems: false,
         popoutPosition: 'top'
+      } : { channel });
+
+      return contextMenu.openContextMenu(event, (props) => React.createElement(UserContextMenu, {
+        ...props,
+        ...defaultProps
       }));
     }
   }
 
   getEmojiRegex (global) {
-    return new RegExp(/(\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff]|[\u2702-\u27b0])/, global ? 'g' : '');
+    return new RegExp(/(\p{Emoji_Presentation})/, global ? 'ug' : 'u');
   }
 
   getInvisibleRegex (global) {
@@ -318,7 +314,7 @@ module.exports = class SmartTypers extends Plugin {
       displayName
     };
 
-    return userFormat.replace(/^\*\*(.*)\*\*$/, '$1').replace(/{([\s\S]+?)}/g, (_, key) => variables[key]);
+    return userFormat.replace(/\*\*(.+?)\*\*/g, '$1').replace(/{([\s\S]+?)}/g, (_, key) => variables[key]);
   }
 
   shadeColor (color, percent) {
