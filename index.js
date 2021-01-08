@@ -243,7 +243,7 @@ module.exports = class SmartTypers extends Plugin {
       });
     }
 
-    const UserPopout = getModuleByDisplayName('UserPopout', false);
+    const UserPopout = getModuleByDisplayName('ConnectedUserPopout', false);
     const PopoutDispatcher = getModule([ 'openPopout' ], false);
 
     if (this.settings.get('userPopout', true) && event.target) {
