@@ -10,6 +10,8 @@
     "DISABLE_INDICATOR": "Disable Indicator",
     "SELF_TYPING_DESC": "Forces yourself to be displayed amongst currently typing users.",
     "SELF_TYPING": "Self Typing",
+    "CONVERT_UNICODE_EMOJIS_DESC": "Replaces shortcode/unicode emojis (🙂) with actual Twemojis.",
+    "CONVERT_UNICODE_EMOJIS": "Convert Unicode Emojis",
     "MAXIMUM_TYPING_USERS": "Maximum Typing Users",
     "TYPING_FORMAT": "Typing Format",
     "TYPING_FORMAT_PLACEHOLDER": "{typingUsers, plural, =1 {is} other {are}} typing...",

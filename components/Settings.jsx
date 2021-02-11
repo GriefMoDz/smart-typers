@@ -86,6 +86,14 @@ module.exports = class Settings extends React.PureComponent {
         disabled
       >
         {Messages.SMART_TYPERS.SELF_TYPING}
+        <div className='smartTypers-beta'>Temporarily Disabled</div>
+      </SwitchItem>
+      <SwitchItem
+        note={Messages.SMART_TYPERS.CONVERT_UNICODE_EMOJIS_DESC}
+        value={getSetting('convertUnicodeEmojis', true)}
+        onChange={() => toggleSetting('convertUnicodeEmojis', true)}
+      >
+        {Messages.SMART_TYPERS.CONVERT_UNICODE_EMOJIS}
       </SwitchItem>
       <SliderInput
         stickToMarkers

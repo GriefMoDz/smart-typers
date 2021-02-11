@@ -22,6 +22,12 @@
   font-style: italic;
 }
 
+.typing-user .emoji, .smartTypers-additionalUsersTooltip .emoji {
+  width: 10px;
+  height: 10px;
+  vertical-align: baseline;
+}
+
 .typing-users {
   margin: 0 5px;
 }
