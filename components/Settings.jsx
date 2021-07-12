@@ -1,4 +1,4 @@
-const { React, i18n: { _proxyContext: { defaultMessages }, Messages }, getModuleByDisplayName } = require('powercord/webpack');
+const { React, i18n, i18n: { Messages }, getModuleByDisplayName } = require('powercord/webpack');
 const { AsyncComponent, FormTitle, Flex, Button } = require('powercord/components');
 const { SwitchItem, SliderInput } = require('powercord/components/settings');
 
@@ -39,6 +39,7 @@ module.exports = class Settings extends React.PureComponent {
 
   renderSettings () {
     const { getSetting, toggleSetting, updateSetting } = this.props;
+    const i18nContextProvider = i18n._provider?._context || i18n._proxyContext;
 
     return <>
       <FormTitle>{Messages.APPEARANCE}</FormTitle>
@@ -107,10 +108,10 @@ module.exports = class Settings extends React.PureComponent {
         {Messages.SMART_TYPERS.MAXIMUM_TYPING_USERS}
       </SliderInput>
       <TextInputWithButton
-        defaultValue={getSetting('typingFormat', defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER)}
-        placeholder={defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER}
+        defaultValue={getSetting('typingFormat', i18nContextProvider.defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER)}
+        placeholder={i18nContextProvider.defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER}
         onChange={(value) => updateSetting('typingFormat', value)}
-        buttonOnClick={() => updateSetting('typingFormat', defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER)}
+        buttonOnClick={() => updateSetting('typingFormat', i18nContextProvider.defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER)}
         title={Messages.SMART_TYPERS.TYPING_FORMAT}
         buttonText={Messages.SMART_TYPERS.SET_AS_DEFAULT}
         buttonIcon='fal fa-undo'

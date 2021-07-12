@@ -1,5 +1,5 @@
 const { Plugin } = require('powercord/entities');
-const { React, getModuleByDisplayName, getModule, contextMenu, i18n: { _proxyContext: { defaultMessages }, Messages }, constants } = require('powercord/webpack');
+const { React, getModuleByDisplayName, getModule, contextMenu, i18n: i18nModule, i18n: { Messages }, constants } = require('powercord/webpack');
 const { findInReactTree } = require('powercord/util');
 const { inject, uninject } = require('powercord/injector');
 
@@ -113,8 +113,9 @@ module.exports = class SmartTypers extends Plugin {
         }
 
         /* Custom Typing Format */
+        const i18nContextProvider = i18nModule._provider?._context || i18nModule._proxyContext;
         const typingFormat = getSetting('typingFormat', '');
-        if (typingFormat.length > 0 && typingFormat !== defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER) {
+        if (typingFormat.length > 0 && typingFormat !== i18nContextProvider.defaultMessages.SMART_TYPERS.TYPING_FORMAT_PLACEHOLDER) {
           try {
             const parsedFormat = _this.modules.i18nParser.getMessage(typingFormat);
             const replacement = typeof parsedFormat.format === 'function'
