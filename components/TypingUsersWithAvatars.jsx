@@ -1,9 +1,12 @@
 const { React, getModule, getModuleByDisplayName } = require('powercord/webpack');
 
 const Avatar = getModule([ 'AnimatedAvatar' ], false);
+const Popout = getModuleByDisplayName('Popout', false);
 const Tooltip = getModuleByDisplayName('Tooltip', false);
 const DiscordTag = getModuleByDisplayName('DiscordTag', false);
 const VoiceUserSummaryItem = getModuleByDisplayName('VoiceUserSummaryItem', false);
+const preloadUserProfile = getModule(m => typeof m?.default === 'function' &&
+  m.default.toString().match(/^function\(e,t,n\){return \w+.apply.+\)}$/), false).default;
 
 module.exports = class TypingUsers extends React.PureComponent {
   render () {
@@ -18,22 +21,46 @@ module.exports = class TypingUsers extends React.PureComponent {
     }), this.props.children ];
   }
 
-  renderTypingUser (...args) {
-    // eslint-disable-next-line multiline-ternary
-    return args[0] ? React.createElement(Tooltip, {
+  renderTypingUser (user, className) {
+    if (!user) {
+      return null;
+    }
+
+    if (this.props.main.settings.get('userPopout')) {
+      return React.createElement(Popout, {
+        preload: () => preloadUserProfile(user.id, user.getAvatarURL(void 0)),
+        renderPopout: (props) => this.props.main.renderUserPopout(user, props),
+        position: Popout.Positions.BOTTOM
+      }, (popoutProps) => React.createElement(Tooltip, {
+        text: React.createElement(DiscordTag, {
+          user,
+          nick: this.props.main.modules.usernameUtils.getNickname(this.props.channel.guild_id, this.props.channel.id, user)
+        }),
+        'aria-label': user.tag
+      }, (tooltipProps) => React.createElement(Avatar.default, Object.assign({}, {
+        ...tooltipProps,
+        className,
+        src: user.getAvatarURL(),
+        size: Avatar.default.Sizes.SIZE_16,
+        onClick: (e) => e.shiftKey ? this.props.main.handleUserClick(user, this.props.channel, e) : popoutProps.onClick(e),
+        onContextMenu: (e) => this.props.main.openUserContextMenu(user, this.props.channel.guild_id, this.props.channel, e)
+      }, _.omit(popoutProps, 'onClick')))));
+    }
+
+    return React.createElement(Tooltip, {
       text: React.createElement(DiscordTag, {
-        user: args[0],
-        nick: this.props.main.modules.usernameUtils.getNickname(this.props.channel.guild_id, this.props.channel.id, args[0])
+        user,
+        nick: this.props.main.modules.usernameUtils.getNickname(this.props.channel.guild_id, this.props.channel.id, user)
       }),
-      'aria-label': args[0].tag
-    }, (props) => React.createElement(Avatar.default, {
-      ...props,
-      src: args[0].getAvatarURL(),
-      className: args[1],
+      'aria-label': user.tag
+    }, (tooltipProps) => React.createElement(Avatar.default, {
+      ...tooltipProps,
+      className,
+      src: user.getAvatarURL(),
       size: Avatar.default.Sizes.SIZE_16,
-      onClick: (e) => this.props.main.handleUserClick(args[0], this.props.channel, e),
-      onContextMenu: (e) => this.props.main.openUserContextMenu(args[0], this.props.channel.guild_id, this.props.channel, e)
-    })) : null;
+      onClick: (e) => e.shiftKey && this.props.main.handleUserClick(user, this.props.channel, e),
+      onContextMenu: (e) => this.props.main.openUserContextMenu(user, this.props.channel.guild_id, this.props.channel, e)
+    }));
   }
 
   renderTypingUsers (...args) {

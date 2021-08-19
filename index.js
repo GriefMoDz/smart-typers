@@ -47,6 +47,10 @@ module.exports = class SmartTypers extends Plugin {
     const _this = this;
     const { _: lodash } =  window;
 
+    const Popout = await getModuleByDisplayName('Popout');
+    const preloadUserProfile = (await getModule(m => typeof m?.default === 'function' &&
+      m.default.toString().match(/^function\(e,t,n\){return \w+.apply.+\)}$/))).default;
+
     const TypingUsers = (await getModuleByDisplayName('FluxContainer(TypingUsers)')).prototype.render.call({ memoizedGetStateFromStores: () => ({}) }).type;
     inject('smartTypers-logic', TypingUsers.prototype, 'render', function (_, res) {
       const typingUsers = lodash(this.props.typingUsers).keys()
@@ -198,10 +202,19 @@ module.exports = class SmartTypers extends Plugin {
               });
 
               /* User Popout and Context Menu */
-              userElement.props = Object.assign({}, userElement.props, {
-                className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
-                onClick: (e) => _this.handleUserClick(user, this.props.channel, e),
-                onContextMenu: (e) => _this.openUserContextMenu(user, guildId, this.props.channel, e)
+              typingUsersContainer.props.children[i * 2] = React.createElement(Popout, {
+                preload: () => getSetting('userPopout', true) && preloadUserProfile(user.id, user.getAvatarURL(void 0)),
+                renderPopout: (props) => _this.renderUserPopout(user, this.props.channel, props),
+                position: Popout.Positions.BOTTOM
+              }, (popoutProps) => {
+                userElement.props = Object.assign({}, userElement.props, {
+                  ...popoutProps,
+                  className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
+                  onClick: (e) => e.shiftKey ? _this.handleUserClick(user, this.props.channel, e) : popoutProps.onClick(e),
+                  onContextMenu: (e) => _this.openUserContextMenu(user, this.props.channel.guild_id, this.props.channel, e)
+                });
+
+                return userElement;
               });
             }
           }
@@ -247,25 +260,19 @@ module.exports = class SmartTypers extends Plugin {
         content: `<@${user.id}>`
       });
     }
+  }
 
+  renderUserPopout (user, channel, props) {
     const UserPopout = getModule(m => m.type?.displayName === 'UserPopoutContainer', false);
-    const PopoutDispatcher = getModule([ 'openPopout' ], false);
 
-    if (this.settings.get('userPopout', true) && event.target) {
-      PopoutDispatcher.openPopout(event.target, {
-        closeOnScroll: false,
-        containerClass: 'smartTypers-popout',
-        render: (props) => React.createElement(UserPopout, {
-          ...props,
-          userId: user.id,
-          guildId: channel.guild_id
-        }),
-        shadow: false,
-        position: 'bottom'
-      }, 'typing-user-popout');
-
-      setTimeout(() => document.querySelector('.smartTypers-popout').style.filter = 'blur(0)', 100);
+    if (this.settings.get('userPopout', true)) {
+      return React.createElement(UserPopout, Object.assign({}, props, {
+        userId: user.id,
+        guildId: channel.guild_id
+      }));
     }
+
+    return null;
   }
 
   openUserContextMenu (user, guildId, channel, event) {
