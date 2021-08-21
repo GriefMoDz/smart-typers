@@ -270,7 +270,7 @@ module.exports = class SmartTypers extends Plugin {
     if (hasRoleColorEverywhere) {
       const tab = settingsTabs.rceverywhere;
       const fluxProps = powercord.api.settings._fluxProps(tab.category);
-      return !getSetting('colorGradient', false) && fluxProps.getSetting('typing', true);
+      return !this.settings.get('colorGradient', false) && fluxProps.getSetting('typing', true);
     }
 
     return false;
