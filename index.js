@@ -202,20 +202,31 @@ module.exports = class SmartTypers extends Plugin {
               });
 
               /* User Popout and Context Menu */
-              typingUsersContainer.props.children[i * 2] = React.createElement(Popout, {
-                preload: () => getSetting('userPopout', true) && preloadUserProfile(user.id, user.getAvatarURL(void 0)),
-                renderPopout: (props) => _this.renderUserPopout(user, this.props.channel, props),
-                position: Popout.Positions.BOTTOM
-              }, (popoutProps) => {
-                userElement.props = Object.assign({}, userElement.props, {
-                  ...popoutProps,
-                  className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
-                  onClick: (e) => e.shiftKey ? _this.handleUserClick(user, this.props.channel, e) : popoutProps.onClick(e),
-                  onContextMenu: (e) => _this.openUserContextMenu(user, this.props.channel.guild_id, this.props.channel, e)
-                });
-
-                return userElement;
+              userElement.props = Object.assign({}, userElement.props, {
+                className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
+                onClick: (e) => _this.handleUserClick(user, this.props.channel, e),
+                onContextMenu: (e) => _this.openUserContextMenu(user, this.props.channel.guild_id, this.props.channel, e)
               });
+
+              if (getSetting('userPopout', true)) {
+                typingUsersContainer.props.children[i * 2] = React.createElement(Popout, {
+                  preload: () => preloadUserProfile(user.id, user.getAvatarURL(void 0)),
+                  renderPopout: (props) => _this.renderUserPopout(user, this.props.channel, props),
+                  position: Popout.Positions.BOTTOM
+                }, (popoutProps) => {
+                  if (member.colorString && _this.shouldInitRCEOverrides()) {
+                    userElement.props.className += ' rolecolor-colored';
+                    userElement.props.style = { '--color': member.colorString }
+                  }
+
+                  userElement.props = Object.assign({}, userElement.props, {
+                    ...popoutProps,
+                    onClick: (e) => e.shiftKey ? userElement.props.onClick(e) : popoutProps.onClick(e),
+                  });
+
+                  return userElement;
+                });
+              }
             }
           }
         }
@@ -251,6 +262,18 @@ module.exports = class SmartTypers extends Plugin {
 
     uninject('smartTypers-logic');
     uninject('smartTypers-self');
+  }
+
+  shouldInitRCEOverrides () {
+    const settingsTabs = powercord.api.settings.tabs;
+    const hasRoleColorEverywhere = settingsTabs.hasOwnProperty('rceverywhere');
+    if (hasRoleColorEverywhere) {
+      const tab = settingsTabs.rceverywhere;
+      const fluxProps = powercord.api.settings._fluxProps(tab.category);
+      return !getSetting('colorGradient', false) && fluxProps.getSetting('typing', true);
+    }
+
+    return false;
   }
 
   handleUserClick (user, channel, event) {
