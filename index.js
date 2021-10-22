@@ -38,7 +38,7 @@ module.exports = class SmartTypers extends Plugin {
     this.getModule('classes', [ 'typing', 'ellipsis' ]);
     this.getModule('relationshipStore', 'getRelationships');
     this.getModule('memberStore', [ 'initialize', 'getMember' ]);
-    this.getModule('userStore', 'getCurrentUser');
+    this.getModule('userStore', 'getNullableCurrentUser');
     this.getModule('usernameUtils', 'getName');
     this.getModule('i18nParser', 'getMessage');
 
