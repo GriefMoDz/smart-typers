@@ -1,12 +1,12 @@
-const { React, getModule, getModuleByDisplayName } = require('powercord/webpack');
+const { React, getModule, getAllModules, getModuleByDisplayName } = require('powercord/webpack');
 
 const Avatar = getModule([ 'AnimatedAvatar' ], false);
 const Popout = getModuleByDisplayName('Popout', false);
 const Tooltip = getModuleByDisplayName('Tooltip', false);
 const DiscordTag = getModuleByDisplayName('DiscordTag', false);
 const VoiceUserSummaryItem = getModuleByDisplayName('VoiceUserSummaryItem', false);
-const preloadUserProfile = getModule(m => typeof m?.default === 'function' &&
-  m.default.toString().match(/^function\(e,t,n\){return \w+.apply.+\)}$/), false).default;
+const preloadUserProfile = getAllModules(m => typeof m?.default === 'function' &&
+  m.default.toString().match(/^function\(e,t,n\){return \w+.apply.+\)}$/), false)[1].default;
 
 module.exports = class TypingUsers extends React.PureComponent {
   render () {

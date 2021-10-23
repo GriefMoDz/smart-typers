@@ -1,5 +1,5 @@
 const { Plugin } = require('powercord/entities');
-const { React, getModuleByDisplayName, getModule, contextMenu, i18n: i18nModule, i18n: { Messages }, constants } = require('powercord/webpack');
+const { React, getModuleByDisplayName, getModule, getAllModules, contextMenu, i18n: i18nModule, i18n: { Messages }, constants } = require('powercord/webpack');
 const { findInReactTree } = require('powercord/util');
 const { inject, uninject } = require('powercord/injector');
 
@@ -48,8 +48,8 @@ module.exports = class SmartTypers extends Plugin {
     const { _: lodash } =  window;
 
     const Popout = await getModuleByDisplayName('Popout');
-    const preloadUserProfile = (await getModule(m => typeof m?.default === 'function' &&
-      m.default.toString().match(/^function\(e,t,n\){return \w+.apply.+\)}$/))).default;
+    const preloadUserProfile = (await getAllModules(m => typeof m?.default === 'function' &&
+      m.default.toString().match(/^function\(e,t,n\){return \w+.apply.+\)}$/)))[1].default;
 
     const TypingUsers = (await getModuleByDisplayName('FluxContainer(TypingUsers)')).prototype.render.call({ memoizedGetStateFromStores: () => ({}) }).type;
     inject('smartTypers-logic', TypingUsers.prototype, 'render', function (_, res) {
