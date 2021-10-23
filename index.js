@@ -202,9 +202,11 @@ module.exports = class SmartTypers extends Plugin {
               });
 
               /* User Popout and Context Menu */
+              const handleOnClick = (e) => _this.handleUserClick(user, this.props.channel, e);
+
               userElement.props = Object.assign({}, userElement.props, {
                 className: [ 'typing-user', getSetting('userPopout', true) && 'clickable' ].filter(Boolean).join(' '),
-                onClick: (e) => _this.handleUserClick(user, this.props.channel, e),
+                onClick: handleOnClick,
                 onContextMenu: (e) => _this.openUserContextMenu(user, this.props.channel.guild_id, this.props.channel, e)
               });
 
@@ -221,7 +223,7 @@ module.exports = class SmartTypers extends Plugin {
 
                   userElement.props = Object.assign({}, userElement.props, {
                     ...popoutProps,
-                    onClick: (e) => e.shiftKey ? userElement.props.onClick(e) : popoutProps.onClick(e),
+                    onClick: (e) => e.shiftKey ? handleOnClick(e) : popoutProps.onClick(e),
                   });
 
                   return userElement;
