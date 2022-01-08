@@ -49,7 +49,7 @@ module.exports = class SmartTypers extends Plugin {
 
     const Popout = await getModuleByDisplayName('Popout');
     const preloadUserProfile = (await getAllModules(m => typeof m?.default === 'function' &&
-      m.default.toString().match(/^function\(e,t,n\){return \w+.apply.+\)}$/)))[1].default;
+      m.default.toString().match(/^function\(e,t,r\){return \w+.apply.+\)}$/)))[1].default;
 
     const TypingUsers = (await getModuleByDisplayName('FluxContainer(TypingUsers)')).prototype.render.call({ memoizedGetStateFromStores: () => ({}) }).type;
     inject('smartTypers-logic', TypingUsers.prototype, 'render', function (_, res) {
@@ -212,7 +212,7 @@ module.exports = class SmartTypers extends Plugin {
 
               if (getSetting('userPopout', true)) {
                 typingUsersContainer.props.children[i * 2] = React.createElement(Popout, {
-                  preload: () => preloadUserProfile(user.id, user.getAvatarURL(void 0)),
+                  preload: () => preloadUserProfile(user.id, user.getAvatarURL(this.props.channel.guild_id, 80, { guildId: this.props.channel.guild_id })),
                   renderPopout: (props) => _this.renderUserPopout(user, this.props.channel, props),
                   position: Popout.Positions.BOTTOM
                 }, (popoutProps) => {

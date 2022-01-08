@@ -6,7 +6,7 @@ const Tooltip = getModuleByDisplayName('Tooltip', false);
 const DiscordTag = getModuleByDisplayName('DiscordTag', false);
 const VoiceUserSummaryItem = getModuleByDisplayName('VoiceUserSummaryItem', false);
 const preloadUserProfile = getAllModules(m => typeof m?.default === 'function' &&
-  m.default.toString().match(/^function\(e,t,n\){return \w+.apply.+\)}$/), false)[1].default;
+  m.default.toString().match(/^function\(e,t,r\){return \w+.apply.+\)}$/), false)[1].default;
 
 module.exports = class TypingUsers extends React.PureComponent {
   render () {
@@ -28,7 +28,7 @@ module.exports = class TypingUsers extends React.PureComponent {
 
     if (this.props.main.settings.get('userPopout')) {
       return React.createElement(Popout, {
-        preload: () => preloadUserProfile(user.id, user.getAvatarURL(void 0)),
+        preload: () => preloadUserProfile(user.id, user.getAvatarURL(this.props.channel.guild_id, 80, { guildId: this.props.channel.guild_id })),
         renderPopout: (props) => this.props.main.renderUserPopout(user, props),
         position: Popout.Positions.BOTTOM
       }, (popoutProps) => React.createElement(Tooltip, {
